@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SWA Project Manager</title>
+<style>
+:root{--bg:#f4f6f9;--cd:#fff;--tx:#1b1f24;--mu:#5f6b7a;--bd:#d5dbe3;--ac:#1f4e9c;--acx:#fff;--ok:#cfeed3;--bad:#ffd0d0;--warn:#E9EEF6;--blk:#E9E3F5;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--cd:#1e242b;--tx:#e8ecf1;--mu:#98a4b3;--bd:#33404d;--ac:#7fb0ff;--acx:#0d1722;--ok:#1f4a2b;--bad:#5a2323;--warn:#2B323C;--blk:#3A2F52;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14181d;--cd:#1e242b;--tx:#e8ecf1;--mu:#98a4b3;--bd:#33404d;--ac:#7fb0ff;--acx:#0d1722;--ok:#1f4a2b;--bad:#5a2323;--warn:#2B323C;--blk:#3A2F52;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;padding:12px;background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+h1{font-size:18px;margin:0}h2{font-size:15px;margin:16px 0 8px}
+.top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.mu{color:var(--mu);font-size:12px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+button,input,select,textarea{font:inherit;color:var(--tx);background:var(--cd);border:1px solid var(--bd);border-radius:6px;padding:6px 8px;max-width:100%}
+button{cursor:pointer}button.on,button.pri{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+.scroll{overflow-x:auto;background:var(--cd);border:1px solid var(--bd);border-radius:8px}
+table{border-collapse:collapse;width:100%;min-width:760px}th,td{padding:7px 8px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--mu)}
+.fl{display:inline-block;padding:2px 8px;border-radius:10px;font-weight:600;font-size:12px;white-space:nowrap}
+.ok{background:var(--ok)}.bad{background:var(--bad)}.warn{background:var(--warn)}.blk{background:var(--blk)}
+.card{background:var(--cd);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+label{display:block;font-size:12px;color:var(--mu)}label input,label select,label textarea{width:100%;box-sizing:border-box;margin-top:2px;color:var(--tx)}
+details{margin-top:4px}summary{cursor:pointer;color:var(--ac)}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.hd{cursor:grab;font-size:18px;padding:0 4px;user-select:none}tr.over td{border-top:3px solid var(--ac)}
+body{padding:16px;max-width:1280px;margin:0 auto;line-height:1.5}
+h1{font-size:20px;letter-spacing:-.2px}h2{font-size:15px}
+.top{padding-bottom:12px;border-bottom:1px solid var(--bd);margin-bottom:12px}
+.tabs{gap:2px;border-bottom:1px solid var(--bd);margin-bottom:16px}
+.tabs button{border:0;background:transparent;color:var(--mu);border-radius:8px 8px 0 0;padding:9px 14px;border-bottom:2px solid transparent;font-weight:500}
+.tabs button.on{background:transparent;color:var(--ac);border-bottom-color:var(--ac)}
+button{border-radius:8px;padding:7px 12px}button:hover{filter:brightness(.95)}
+input,select,textarea{border-radius:8px;padding:7px 10px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--ac);outline-offset:0}
+.card,.scroll{border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}.card{padding:16px}
+th{text-transform:uppercase;letter-spacing:.04em;font-size:11px;padding:10px 12px;background:color-mix(in srgb,var(--mu) 8%,transparent)}
+td{padding:10px 12px}tr:last-child td{border-bottom:0}
+tr:hover td{background:color-mix(in srgb,var(--ac) 5%,transparent)}
+.fl{font-size:11px;padding:3px 10px}
+.xr{background:var(--cd);border:1px solid var(--bd);border-radius:12px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.xr>summary{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;padding:12px 14px;cursor:pointer;list-style:none;color:var(--tx)}
+.xr>summary::-webkit-details-marker{display:none}
+.xr>summary::before{content:"▸";color:var(--mu);display:inline-block;transition:transform .15s}
+.xr[open]>summary::before{transform:rotate(90deg)}
+.xr .sn{font-weight:600;flex:1 1 180px}.xr .st{color:var(--mu);font-size:12px}
+.xr .xb{padding:12px 14px 14px;border-top:1px solid var(--bd)}
+.th{height:48px;width:48px;object-fit:cover;border-radius:6px;border:1px solid var(--bd);margin:4px 4px 0 0;cursor:zoom-in}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:50;cursor:zoom-out}.lb img{max-width:92%;max-height:92%;border-radius:8px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:6px}
+.tile{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}.tile .tn{font-size:24px;font-weight:700}.tile .tl{color:var(--mu);font-size:12px}.tile.ok{background:var(--ok)}.tile.bad{background:var(--bad)}
+.at{padding:4px 0}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;background:var(--mu)}.dot.bad{background:#d9534f}.dot.warn{background:#8A96A8}
+.ev,.tk{display:flex;gap:10px;padding:6px 0;border-bottom:1px dashed var(--bd)}.ev:last-child,.tk:last-child{border-bottom:0}
+.ev .dt{min-width:54px;font-size:12px;color:var(--mu);font-weight:600}
+.ck{width:20px;height:20px;border-radius:50%;border:1px solid var(--bd);display:inline-flex;align-items:center;justify-content:center;flex:0 0 20px;font-size:12px}.ck.ok{background:var(--ok)}.ck.bad{background:var(--bad)}
+.xb h3{font-size:13px;margin:14px 0 4px}.why{background:var(--warn);border-radius:8px;padding:8px 10px}
+.pr-High{border-left:4px solid #d9534f}.pr-Medium{border-left:4px solid #8A96A8}.pr-Low{border-left:4px solid #5cb85c}
+.rd-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:70}
+#rdrawer{display:none}
+.rd-pn{position:fixed;top:0;right:0;bottom:0;width:min(860px,100%);background:var(--cd);color:var(--tx);z-index:71;display:flex;flex-direction:column;box-shadow:-8px 0 24px rgba(0,0,0,.25)}
+.rd-hd{padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.rd-msg{padding:6px 16px;font-size:12px;color:var(--mu);min-height:8px}
+.rd-bd{overflow:auto;flex:1;padding:18px 22px;background:#fff;color:#222}
+.pt{width:100%}
+.pt td{vertical-align:top;padding:9px 10px;font-size:13px}
+.pt th{padding:9px 10px;white-space:nowrap}
+.pt tr:hover td{background:color-mix(in srgb,var(--ac) 4%,transparent)}
+.pt .nw{white-space:nowrap}
+.pt .ord{white-space:nowrap;width:1%}
+.pt .pn{font-weight:600;min-width:120px}
+.pt input[type=date]{width:128px;padding:4px 6px;font-size:12px}
+.pt select{padding:4px 6px;font-size:12px;max-width:150px}
+.pt .why{min-width:240px}
+.pt .ln{line-height:1.4;margin:3px 0}
+.pt details{margin-top:2px}.pt summary{font-size:12px;cursor:pointer}
+.clip{display:block;font-weight:500;white-space:normal;overflow-wrap:anywhere}
+.btn-sm{padding:2px 9px;font-size:12px;border-radius:6px;margin-top:3px}
+button.ic{padding:1px 6px;font-size:11px;line-height:1.4;margin:0 1px;border-radius:5px}
+.pt .hd{cursor:grab;color:var(--mu);margin-right:4px;font-size:15px;vertical-align:middle}
+.exp{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+#printArea{display:none}
+@media print{body>*:not(#printArea){display:none!important}#printArea{display:block;color:#000;background:#fff;padding:12px}#printArea table{min-width:0;width:100%}#printArea td,#printArea th{border:1px solid #999;color:#000;font-size:11px;padding:4px}#printArea th{background:#eee}}
+</style></head><body><div id="printArea"></div>
+<div id="app">Loading…</div>
+<script>
+const $=s=>document.querySelector(s), app=$("#app");
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const today=()=>iso(new Date());
+const ST=["Not Started","In Development","Ready for QA","QA In Progress","Bug Fixing","Blocked / On Hold","Released"];
+let db,me=null,isAdmin=false,projects=[],updates=[],users=[],tasks=[],tf={p:"",d:""},tsub="all",tab="",assigning=null,pending=false,loginMsg="",note="";
+const byOrder=(a,b)=>(a.order??1e9)-(b.order??1e9)||a.name.localeCompare(b.name);
+const devs=()=>users.filter(u=>u.role==="developer");
+function nm(id){if(!id)return"Not assigned";const u=users.find(x=>x.id===id);return u?u.name:"Removed user"}
+function lastUp(pid){return updates.find(u=>u.projectId===pid)}
+function stOf(p){const l=lastUp(p.id);return p.status==="Released"?"Released":(l&&l.status)||p.status}
+function flag(p){
+  const s=stOf(p);
+  if(s==="Released")return["DONE","ok"];
+  if(!p.assignee)return["ASSIGN DEVELOPER","warn"];
+  if(s==="Blocked / On Hold")return["BLOCKED","blk"];
+  if(!p.committed)return["GET DATE","warn"];
+  if(p.committed<today())return["OVERDUE","bad"];
+  return["ON TRACK","ok"];
+}
+const fl=p=>{const[t,c]=flag(p);return`<span class="fl ${c}">${t}</span>`};
+const dt=d=>d?esc(d):"—";
+
+function toast(m){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";t.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:#222;color:#fff;padding:10px 16px;border-radius:10px;z-index:60;max-width:90%;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.3)";document.body.append(t)}t.textContent=m;t.style.display="block";clearTimeout(t._h);t._h=setTimeout(()=>{t.style.display="none"},5000)}
+window.alert=toast;
+let delId=null;
+const themeKey="swa_theme";
+function getTheme(){try{return localStorage.getItem(themeKey)||"auto"}catch(e){return"auto"}}
+function applyTheme(t){const r=document.documentElement;if(t==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",t)}
+function themeLabel(){const t=getTheme();return t==="light"?"☀ Light":t==="dark"?"☾ Dark":"◐ Auto"}
+applyTheme(getTheme());
+function vLogin(){return`<div class="card" style="max-width:360px;margin:40px auto"><h1>SWA Project Manager</h1>
+<div class="mu" style="margin:6px 0 12px">Sign in with the username and password given by your admin.</div>
+<label>Username<input id="lu" autocomplete="username" autocapitalize="none"></label>
+<label style="margin-top:8px">Password<input id="lp" type="password" autocomplete="current-password"></label>
+<div class="row" style="margin-top:10px"><button class="pri" data-act="login">Sign in</button><button data-act="theme" title="Switch light / dark">${themeLabel()}</button></div>
+${loginMsg?`<div style="margin-top:8px"><span class="fl bad">${esc(loginMsg)}</span></div>`:""}</div>`}
+async function doLogin(){
+  const u=$("#lu").value.trim(),pw=$("#lp").value;
+  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+  try{const r=await api("POST","/api/login",{username:u,password:pw});
+    me={id:r.id,name:r.name};isAdmin=r.role==="admin";tab=isAdmin?"today":"mine";loginMsg="";pending=false;db.reset();await db.refresh();render()}
+  catch(e){loginMsg=e.message;pending=false;render()}
+}
+function render(){
+  const a=document.activeElement;
+  if(a&&app.contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){pending=true;return}
+  pending=false;
+  if(!me){app.innerHTML=vLogin();return}
+  const tabs=isAdmin?[["today","Today"],["update","Add update"],["projects","Projects"],["tasks","Tasks"],["developers","Developers"],["weekly","Weekly summary"],["account","Account"]]:[["mine","My projects"],["mytasks","My tasks"],["account","Account"]];
+  app.innerHTML=`<div class="top"><div><h1>SWA Project Manager</h1><div class="mu">${esc(me.name)} · ${isAdmin?"Admin":"Developer"} · ${today()}</div></div><div class="row"><button data-act="theme" title="Switch light / dark">${themeLabel()}</button><button data-act="logout">Sign out</button></div></div>
+  <div class="tabs">${tabs.map(([k,l])=>`<button data-act="tab" data-k="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>
+  ${tab==="today"?vToday():tab==="projects"?vProjects():tab==="tasks"?vTasks():tab==="update"?vAdminUpdate():tab==="mytasks"?vMyTasks():tab==="developers"?vDevs():tab==="weekly"?vWeekly():tab==="account"?vAccount():vMine()}`;
+}
+document.addEventListener("focusout",()=>setTimeout(()=>{if(pending)render()},300));
+
+function vToday(){
+  const rows=projects.slice().sort(byOrder).map(p=>{
+    const l=lastUp(p.id),ud=l&&l.date===today();
+    const hist=updates.filter(u=>u.projectId===p.id).slice(0,5).map(u=>`<div class="mu">${u.date} · ${esc(nm(u.userId))} · ${esc(u.status)} · ${esc(u.task)} → ${esc(u.next)} (${dt(u.nextDate)}) · final ${dt(u.finalDate)}${u.blocker?" · blocker: "+esc(u.blocker):""}${u.remark?" · "+esc(u.remark):""}</div>`).join("");
+    const useBtn=l&&l.finalDate&&l.finalDate!==p.committed?` <button data-act="use" data-id="${p.id}">Use ${esc(l.finalDate)}</button>`:"";
+    return`<tr><td><b>${esc(p.name)}</b></td><td>${esc(nm(p.assignee))}${!p.assignee&&p.devLabel?`<div class="mu">planned: ${esc(p.devLabel)}</div>`:""}</td><td>${esc(stOf(p))}</td><td>${dt(p.committed)}</td><td>${fl(p)}</td><td>${ud?"✓ Yes":"✗ No"}</td>
+    <td>${l?`<b>${esc(l.task||"(no task text)")}</b>${l.next?`<div>Next: ${esc(l.next)}</div>`:""}<div class="mu">${esc(nm(l.userId))} · ${esc(l.date)} · Dev ${l.dev===""||l.dev==null?"—":esc(l.dev)}% · QA ${l.qa===""||l.qa==null?"—":esc(l.qa)}% · final ${dt(l.finalDate)}${esc(l.blocker?" · blocker: "+l.blocker:"")}${esc(l.reason?" · reason: "+l.reason:"")}${esc(l.remark?" · "+l.remark:"")}</div>${useBtn}`:'<span class="mu">no update yet</span>'}<details><summary>History</summary>${hist||'<div class="mu">none</div>'}</details></td></tr>`}).join("");
+  const nu=projects.filter(p=>p.assignee&&stOf(p)!=="Released"&&!(lastUp(p.id)&&lastUp(p.id).date===today())).length;
+  return`<div class="mu" style="margin-bottom:8px">${nu} assigned project(s) have no update today.</div><div class="scroll"><table><tr><th>Project</th><th>Developer</th><th>Status</th><th>Committed</th><th>Flag</th><th>Updated today</th><th>Latest update</th></tr>${rows||'<tr><td colspan="7">No projects yet.</td></tr>'}</table></div>`;
+}
+function pOpen(p){return tasks.filter(t=>t.projectId===p.id&&t.status!=="Done").sort(tcmp)}
+function lines(arr,n){
+  const top=arr.slice(0,n).map(x=>`<div class="ln">${x}</div>`).join("");
+  const rest=arr.slice(n);
+  return top+(rest.length?`<details><summary>+${rest.length} more</summary>${rest.map(x=>`<div class="ln">${x}</div>`).join("")}</details>`:"");
+}
+function pWhy(p){
+  const u=lastUp(p.id),items=[];
+  pOpen(p).forEach(t=>{if(t.pendingReason)items.push(`<b>${esc(t.title)}</b>: ${esc(t.pendingReason)}`)});
+  if(u&&u.blocker)items.push(`Blocker: ${esc(u.blocker)}`);
+  if(u&&u.reason)items.push(`Delay: ${esc(u.reason)}`);
+  return items.length?lines(items,2):'<span class="mu">\u2014</span>';
+}
+function pRem(p){
+  const o=pOpen(p);
+  if(!o.length)return'<span class="mu">No open tasks</span>';
+  const items=o.map(t=>`${t.priority==="High"?'<span class="fl bad">HIGH</span> ':""}<span class="clip" title="${esc(t.title)}">${esc(t.title)}</span> <span class="mu">${esc(nm(t.assignee))}${t.due?" \u00b7 "+esc(t.due):""}</span>`);
+  return `<div class="mu">${o.length} open</div>`+lines(items,2);
+}
+function vProjects(){
+  const sub=projects.slice().sort(byOrder).filter(p=>grp(p)===pgroup);
+  const rows=sub.map(p=>`<tr data-row="${p.id}">
+  <td class="ord"><span class="hd" draggable="true" data-drag="${p.id}" title="Drag to reorder">\u283f</span><button class="ic" data-act="up" data-id="${p.id}" title="Move up">\u25b2</button><button class="ic" data-act="down" data-id="${p.id}" title="Move down">\u25bc</button></td>
+  <td><div class="pn">${esc(p.name)}</div>${!p.assignee&&p.devLabel?`<div class="mu">planned: ${esc(p.devLabel)}</div>`:""}</td>
+  <td><select data-f="group" data-id="${p.id}">${GROUPS.map(g=>`<option ${g===grp(p)?"selected":""}>${g}</option>`).join("")}</select></td>
+  <td><div>${esc(nm(p.assignee))}</div><button class="btn-sm" data-act="assign" data-id="${p.id}">${p.assignee?"Change":"Assign"}</button>
+    ${assigning===p.id?`<div style="margin-top:6px">${devs().map(d=>`<div><button class="btn-sm" data-act="pick" data-id="${p.id}" data-uid="${d.id}">${esc(d.name)}</button></div>`).join("")||'<div class="mu">Add developers in the Developers tab first.</div>'}</div>`:""}</td>
+  <td><select data-f="status" data-id="${p.id}">${ST.map(s=>`<option ${s===p.status?"selected":""}>${s}</option>`).join("")}</select></td>
+  <td class="mu nw">${dt(p.baseline)}</td>
+  <td><input class="dt" type="date" data-f="committed" data-id="${p.id}" value="${esc(p.committed)}"></td>
+  <td><input class="dt" type="date" data-f="actual" data-id="${p.id}" value="${esc(p.actual)}"></td>
+  <td class="why">${pWhy(p)}</td>
+  <td class="why">${pRem(p)}</td>
+  <td class="mu">${(p.dateLog||[]).length}</td></tr>`).join("");
+  const tabs=`<div class="tabs">${GROUPS.map(g=>`<button data-act="ptab" data-k="${g}" class="${pgroup===g?"on":""}">${g} (${projects.filter(p=>grp(p)===g).length})</button>`).join("")}</div>`;
+  return tabs+`<div class="card"><div class="row"><b>Add project</b></div><div class="row" style="margin-top:8px"><input id="np" placeholder="Project name"><label style="display:inline-flex;align-items:center;gap:6px">Committed <input id="nd" type="date"></label><button class="pri" data-act="add">Add</button></div></div>
+  <div class="scroll"><table class="pt">${sub.length?"":'<tr><td colspan="11" class="mu">No projects in this group yet. Add one below, or change a project\'s group.</td></tr>'}<tr><th></th><th>Project</th><th>Group</th><th>Developer</th><th>Status</th><th>Baseline</th><th>Committed</th><th>Actual</th><th>Why pending</th><th>Remaining tasks</th><th>Changes</th></tr>${rows}</table></div>
+  <div class="mu" style="margin-top:8px">Drag \u283f or use \u25b2 \u25bc to reorder. The order also applies to the Today and Weekly tabs. Baseline never changes; every committed-date change is counted.</div>`;
+}
+function vDevs(){
+  const rows=devs().map(d=>`<tr><td><b>${esc(d.name)}</b></td><td>${esc(d.id)}${d.noLogin?' <span class="mu">(no login)</span>':""}</td><td>${projects.filter(p=>p.assignee===d.id).map(p=>esc(p.name)).join(", ")||"—"}</td>
+  <td><div class="row"><input type="text" id="rp_${esc(d.id)}" placeholder="New password"><button data-act="reset" data-id="${esc(d.id)}">Reset</button><button data-act="remove" data-id="${esc(d.id)}" class="${delId===d.id?"pri":""}">${delId===d.id?"Confirm remove":"Remove"}</button></div></td></tr>`).join("");
+  return`<div class="card"><b>Add developer</b><div class="grid" style="margin-top:6px"><label>Full name<input id="dn"></label><label>Username (optional)<input id="du" autocapitalize="none"></label><label>Password (optional)<input id="dp" type="text"></label></div>
+  <div class="row" style="margin-top:8px"><button class="pri" data-act="adddev">Add developer</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div>
+  <div class="mu" style="margin-top:6px">Leave the password empty to add a developer by name only, with no login. You then enter their updates yourself in the Add update tab. If you add a password, they can sign in and update on their own.</div></div>
+  <div class="scroll"><table><tr><th>Name</th><th>Username</th><th>Assigned projects</th><th>Password / remove</th></tr>${rows||'<tr><td colspan="4">No developers yet.</td></tr>'}</table></div>`;
+}
+const TS=["To Do","In Progress","Done"];
+const pname=id=>{const p=projects.find(x=>x.id===id);return p?p.name:"Deleted project"};
+const porder=id=>{const i=projects.slice().sort(byOrder).findIndex(x=>x.id===id);return i<0?999:i};
+const tsel=t=>`<select data-t="status" data-id="${t.id}">${TS.map(s=>`<option ${s===t.status?"selected":""}>${s}</option>`).join("")}</select>`;
+const opts=(arr,sel)=>arr.map(([v,l])=>`<option value="${esc(v)}" ${v===sel?"selected":""}>${esc(l)}</option>`).join("");
+const PR=["High","Medium","Low"],prk=t=>{const i=PR.indexOf(t.priority);return i<0?1:i};
+const psel=t=>`<select data-t="priority" data-id="${t.id}" class="pr pr-${t.priority||"Medium"}">${PR.map(s=>`<option ${s===(t.priority||"Medium")?"selected":""}>${s}</option>`).join("")}</select>`;
+const prs=t=>t.status==="To Do"||t.status==="Pending"?`<div><input data-t="pendingReason" data-id="${t.id}" value="${esc(t.pendingReason)}" placeholder="Why is it pending?"></div>`:"";
+const tcmp=(a,b)=>(a.status==="Done")-(b.status==="Done")||prk(a)-prk(b)||String(a.due||"9").localeCompare(String(b.due||"9"));
+let df="all",dfrom="",dto="",pf="";
+function dm(t,k){
+  const T=today(),open=t.status!=="Done";
+  if(k==="today")return t.due===T;
+  if(k==="upcoming")return open&&!!t.due&&t.due>T;
+  if(k==="overdue")return open&&!!t.due&&t.due<T;
+  if(k==="todo")return t.status==="To Do"||t.status==="Pending";
+  if(k==="nodate")return !t.due;
+  if(k==="done")return t.status==="Done";
+  if(k==="week"){const n=new Date(),a=new Date(n);a.setDate(n.getDate()-((n.getDay()+6)%7));const b=new Date(a);b.setDate(a.getDate()+6);return !!t.due&&t.due>=iso(a)&&t.due<=iso(b)}
+  return true;
+}
+const dateOk=t=>dm(t,df)&&(!dfrom||(!!t.due&&t.due>=dfrom))&&(!dto||(!!t.due&&t.due<=dto))&&(!pf||(t.priority||"Medium")===pf);
+function dfBar(list){
+  const C=[["all","All"],["today","Today"],["week","This week"],["upcoming","Upcoming"],["overdue","Overdue"],["todo","To Do"],["nodate","No due date"],["done","Done"]];
+  return`<div class="row" style="margin-bottom:8px">${C.map(([k,l])=>`<button data-act="df" data-k="${k}" class="${df===k?"on":""}">${l} (${list.filter(t=>dm(t,k)).length})</button>`).join("")}</div>
+  <div class="row" style="margin-bottom:8px"><span class="mu">Priority:</span>${["","High","Medium","Low"].map(k=>`<button data-act="pf" data-k="${k}" class="${pf===k?"on":""}">${k||"All"} (${list.filter(t=>!k||(t.priority||"Medium")===k).length})</button>`).join("")}</div>
+  <div class="row" style="margin-bottom:10px"><label style="display:inline">Due from <input type="date" data-dr="from" value="${esc(dfrom)}"></label><label style="display:inline">to <input type="date" data-dr="to" value="${esc(dto)}"></label><button data-act="dfclear">Clear filters</button></div>`;
+}
+app.addEventListener("change",e=>{const k=e.target.dataset.dr;if(!k)return;if(k==="from")dfrom=e.target.value;else dto=e.target.value;e.target.blur();render()});
+const su=i=>/^https?:\/\//.test(i)?i:"/api/blob/"+i;
+const imgs=t=>(t.images||[]).map(i=>`<img class="th" src="${esc(su(i))}" data-act="img" data-src="${esc(su(i))}" alt="attachment">`).join("");
+async function upFiles(inp){
+  const files=[...((inp&&inp.files)||[])].filter(f=>f.type.startsWith("image/")).slice(0,3),ids=[];
+  for(const f of files){
+    const r=await fetch("/api/upload",{method:"POST",headers:{"Content-Type":f.type},body:f,credentials:"same-origin"});
+    const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Upload failed");ids.push(j.id);
+  }
+  return ids;
+}
+const GROUPS=["SWA","Octopus","Others"];
+let pgroup="SWA";
+const allP=()=>projects,allT=()=>tasks;
+function grp(p){if(GROUPS.includes(p.group))return p.group;const n=String(p.name||"").toLowerCase();if(/octopus/.test(n))return"Octopus";if(/swa/.test(n))return"SWA";return"Others"}
+let exportRows=[],exportTitle="",editId=null;
+const fsel=(id,lb,arr,val,dis)=>`<label>${lb}<select id="${id}" ${dis?"disabled":""}>${arr.map(x=>`<option ${x===val?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`;
+function editPanel(devView){
+  const t=editId&&tasks.find(x=>x.id===editId);
+  if(!t)return"";
+  const canTitle=isAdmin||t.createdByRole==="developer";
+  const projOpts=projects.slice().sort(byOrder).map(p=>`<option value="${p.id}" ${p.id===t.projectId?"selected":""}>${esc(p.name)}</option>`).join("");
+  const devOpts=devs().map(d=>`<option value="${d.id}" ${d.id===t.assignee?"selected":""}>${esc(d.name)}</option>`).join("");
+  return`<div class="card" style="border-color:var(--ac)"><b>Edit task</b><div class="grid" style="margin-top:8px">
+    <label>Task<input id="ed_title" value="${esc(t.title)}" ${canTitle?"":"disabled"}></label>
+    ${isAdmin?`<label>Project<select id="ed_project">${projOpts}</select></label><label>Developer<select id="ed_assignee">${devOpts}</select></label>`:`<label>Project<input value="${esc(pname(t.projectId))}" disabled></label>`}
+    <label>Due date<input id="ed_due" type="date" value="${esc(t.due||"")}"></label>
+    ${fsel("ed_priority","Priority",PR,t.priority||"Medium")}
+    ${fsel("ed_status","Status",TS,t.status||"To Do")}
+    <label>Note<input id="ed_note" value="${esc(t.note||"")}"></label>
+    <label>Pending reason<input id="ed_pending" value="${esc(t.pendingReason||"")}"></label>
+  </div><div class="row" style="margin-top:10px"><button class="pri" data-act="editsave" data-id="${t.id}">Save changes</button><button data-act="editcancel">Cancel</button></div></div>`;
+}
+
+const EXH=["Project","Task","Developer","Added by","Priority","Status","Due","Created","Done on","Pending reason","Note"];
+const exRow=t=>[pname(t.projectId),t.title,nm(t.assignee),t.createdByRole==="admin"?"Assigned by admin":"Added by developer",t.priority||"Medium",t.status||"To Do",t.due||"",t.createdOn||"",t.doneOn||"",t.pendingReason||"",t.note||""];
+function fileName(t){return (t||"tasks").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")+"-"+today()}
+function exportCsv(rows,title){
+  const lines=[EXH,...rows.map(exRow)].map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(","));
+  const blob=new Blob(["\uFEFF"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fileName(title)+".csv";
+  document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
+function exportPdf(rows,title){
+  const pa=document.getElementById("printArea"),done=rows.filter(t=>t.status==="Done").length;
+  pa.innerHTML=`<h2 style="margin:0 0 4px">Task report: ${esc(title)}</h2><div style="margin-bottom:10px">Generated ${esc(today())} · ${rows.length} task(s) · ${done} done · ${rows.length-done} open</div><table style="border-collapse:collapse;width:100%;font-size:11px"><tr>${EXH.map(h=>`<th style="text-align:left;border:1px solid #999;background:#eee;padding:4px">${esc(h)}</th>`).join("")}</tr>${rows.map(t=>`<tr>${exRow(t).map(v=>`<td style="border:1px solid #999;padding:4px;vertical-align:top">${esc(v)}</td>`).join("")}</tr>`).join("")||'<tr><td colspan="11" style="border:1px solid #999;padding:4px">No tasks match the current filters.</td></tr>'}</table>`;
+  window.print();
+}
+function exportBar(scope,list){
+  exportRows=list.filter(dateOk);
+  exportTitle=scope==="mine"?"My tasks":(tf.d?nm(tf.d):"All developers")+(tf.p?" - "+pname(tf.p):"");
+  return`<div class="exp"><button class="pri" data-act="exp" data-k="csv">Export spreadsheet (CSV)</button><button class="pri" data-act="exp" data-k="pdf">Save as PDF</button><span class="mu">${exportRows.length} task(s) in this view · ${esc(exportTitle)}</span></div>`;
+}
+function vTasks(){
+  const list=tasks.filter(t=>(!tf.p||t.projectId===tf.p)&&(!tf.d||t.assignee===tf.d)&&(tsub==="all"||(tsub==="dev")===(t.createdByRole==="developer"))).sort((a,b)=>porder(a.projectId)-porder(b.projectId)||tcmp(a,b));
+  const rows=list.filter(dateOk).map(t=>`<tr><td><b>${esc(pname(t.projectId))}</b></td><td>${esc(t.title)}${t.note?`<div class="mu">${esc(t.note)}</div>`:""}<div>${imgs(t)}</div>${prs(t)}</td><td>${esc(nm(t.assignee))}</td><td>${t.createdByRole==="admin"?"Admin":"Developer"}</td><td><input type="date" data-t="due" data-id="${t.id}" value="${esc(t.due)}"></td><td>${psel(t)}</td><td>${tsel(t)}</td><td><button data-act="edit" data-id="${t.id}">Edit</button> <button data-act="deltask" data-id="${t.id}" class="${delId===t.id?"pri":""}">${delId===t.id?"Confirm delete":"Delete"}</button></td></tr>`).join("");
+  const po=projects.slice().sort(byOrder).map(p=>[p.id,p.name]),dv=devs().map(d=>[d.id,d.name]);
+  return`${editPanel(false)}<div class="tabs">${[["all","All Tasks"],["admin","Assigned by Admin"],["dev","Logged by Developers"]].map(([k,l])=>`<button data-act="tsub" data-k="${k}" class="${tsub===k?"on":""}">${l}</button>`).join("")}</div>${tsub==="dev"?"":`<div class="card"><b>Assign a task</b><div class="grid" style="margin-top:6px">
+  <label>Project<select id="tp"><option value="">Select…</option>${opts(po)}</select></label>
+  <label>Developer<select id="tw"><option value="">Select…</option>${opts(dv)}</select></label>
+  <label>Task<input id="tt"></label><label>Due date<input id="td" type="date"></label><label>Priority<select id="tpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="tn"></label><label>Images (optional, up to 3)<input id="ti" type="file" accept="image/*" multiple></label></div>
+  <div class="row" style="margin-top:8px"><button class="pri" data-act="addtask">Assign task</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div></div>`}
+  <div class="row" style="margin-bottom:8px"><label style="display:inline">Project <select data-tf="p"><option value="">All</option>${opts(po,tf.p)}</select></label><label style="display:inline">Developer <select data-tf="d"><option value="">All</option>${opts(dv,tf.d)}</select></label></div>
+  ${exportBar("admin",list)}${dfBar(list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Developer</th><th>Added by</th><th>Due</th><th>Priority</th><th>Status</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet.</td></tr>'}</table></div>`;
+}
+function vMyTasks(){
+  const mp=projects.filter(p=>p.assignee===me.id).sort(byOrder),list=tasks.filter(t=>t.assignee===me.id).sort(tcmp);
+  const rows=list.filter(dateOk).map(t=>`<tr><td><b>${esc(pname(t.projectId))}</b></td><td>${esc(t.title)}<div>${imgs(t)}</div>${prs(t)}</td><td>${t.createdByRole==="admin"?"Assigned by admin":"Added by you"}</td><td>${dt(t.due)}</td><td>${psel(t)}</td><td>${tsel(t)}</td><td><input data-t="note" data-id="${t.id}" value="${esc(t.note)}" placeholder="Add a note"></td><td><button data-act="edit" data-id="${t.id}">Edit</button> ${t.createdByRole==="developer"?`<button data-act="deltask" data-id="${t.id}" class="${delId===t.id?"pri":""}">${delId===t.id?"Confirm delete":"Delete"}</button>`:""}</td></tr>`).join("");
+  const form=mp.length?`<div class="grid" style="margin-top:6px"><label>Project<select id="mp">${mp.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></label><label>Task<input id="mt"></label><label>Status<select id="ms">${TS.map(s=>`<option ${s==="Done"?"selected":""}>${s}</option>`).join("")}</select></label><label>Date<input id="md" type="date" value="${today()}"></label><label>Priority<select id="mpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="mn"></label><label>Images (optional, up to 3)<input id="mi" type="file" accept="image/*" multiple></label></div><div class="row" style="margin-top:8px"><button class="pri" data-act="addmine">Add task</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div>`:'<div class="mu" style="margin-top:6px">No projects are assigned to you yet.</div>';
+  return`${editPanel(true)}<div class="card"><b>Add a task (what you did or will do)</b>${form}</div>
+  ${exportBar("mine",list)}${dfBar(list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Source</th><th>Due / date</th><th>Priority</th><th>Status</th><th>Note</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet. Tasks your admin assigns appear here.</td></tr>'}</table></div>`;
+}
+app.addEventListener("change",async e=>{
+  const k=e.target.dataset.tf;if(k){tf[k]=e.target.value;e.target.blur();render();return}
+  const t=e.target.dataset.t,id=e.target.dataset.id;if(!t)return;
+  const v=e.target.value,u={[t]:v,updatedTs:Date.now()};if(t==="status")u.doneOn=v==="Done"?today():"";
+  try{await db.doc("tasks/"+id).update(u)}catch(err){alert("Could not save: "+(err.message||err.code||err))}
+});
+function vAccount(){return`<div class="card" style="max-width:380px"><b>Change my password</b><label style="margin-top:8px">New password<input id="np1" type="password"></label><div class="row" style="margin-top:8px"><button class="pri" data-act="chpw">Save password</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div></div>`}
+function weekDays(){const d=[];for(let i=0;i<7;i++){const x=new Date();x.setDate(x.getDate()-i);d.push(iso(x))}return d}
+const openX=new Set();
+app.addEventListener("toggle",e=>{const d=e.target;if(d&&d.dataset&&d.dataset.x){d.open?openX.add(d.dataset.x):openX.delete(d.dataset.x)}},true);
+const wk=d=>{const g=new Date(d+"T00:00:00").getDay();return g>0&&g<6};
+function why(t){
+  const u=updates.find(x=>x.projectId===t.projectId&&x.userId===t.assignee),r=[];
+  if(t.pendingReason)r.push("Pending: "+t.pendingReason);
+  if(t.note)r.push("Task note: "+t.note);
+  if(u&&u.blocker)r.push("Blocker: "+u.blocker);
+  if(u&&u.reason)r.push("Delay reason: "+u.reason);
+  return r.join(" · ")||"No reason given";
+}
+function vWeekly(){
+  return vWeeklyFriendly();
+}
+const fd=d=>{const x=new Date(d+"T00:00:00");return x.toLocaleDateString(undefined,{day:"numeric",month:"short"})};
+function ago(ts){if(!ts)return"never";const n=Math.floor((Date.now()-ts)/864e5);return n<=0?"today":n===1?"yesterday":n+" days ago"}
+function vAdminUpdate(){
+  const po=projects.slice().sort(byOrder).map(p=>[p.id,p.name]),dv=devs().map(d=>[d.id,d.name]);
+  const f=(i,lb,ty="text")=>`<label>${lb}<input id="${i}" type="${ty}"></label>`;
+  return`<div class="card"><b>Add a daily update (what the developer told you)</b><div class="grid" style="margin-top:8px">
+  <label>Project<select id="ap"><option value="">Select…</option>${opts(po)}</select></label>
+  <label>Developer<select id="ad"><option value="">Same as the project’s developer</option>${opts(dv)}</select></label>
+  <label>Date<input id="adt" type="date" value="${today()}"></label>${f("at","Task / what happened")}
+  <label>Status<select id="as">${ST.map(s=>`<option>${s}</option>`).join("")}</select></label>
+  ${f("adv","Dev %","number")}${f("aq","QA %","number")}${f("ab","Blocker")}${f("ar","Why delayed (reason)")}${f("an","Next action")}${f("and","Corresponding date","date")}${f("af","Final date","date")}${f("am","Remark")}</div>
+  <div class="row" style="margin-top:10px"><button class="pri" data-act="adminupd">Save update</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div>
+  <div class="mu" style="margin-top:6px">One update per project per day. Saving again for the same date replaces it.</div></div>`;
+}
+const fmtD=s=>{if(!s)return"\u2014";const[y,m,d]=s.split("-");const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];return(+d)+" "+M[+m-1]+" "+y};
+function rOwner(p){if(p.assignee){const n=nm(p.assignee);if(n!=="Removed user")return n}return p.devLabel?p.devLabel+" (not assigned in app)":"Not assigned"}
+function rData(){
+  const _P=allP(),_T=allT(),_gid=new Set(_P.filter(p=>grp(p)===pgroup).map(p=>p.id));
+  const projects=_P.filter(p=>_gid.has(p.id)),tasks=_T.filter(t=>_gid.has(t.projectId));
+  const T=today(),ps=projects.slice().sort(byOrder).map(p=>({p,rel:p.status==="Released"}));
+  const pend=tasks.filter(t=>t.status!=="Done").sort((a,b)=>(a.due||"9999").localeCompare(b.due||"9999")),done=tasks.filter(t=>t.status==="Done").sort((a,b)=>String(a.doneOn||"").localeCompare(String(b.doneOn||"")));
+  const late=p=>p.status!=="Released"&&!!p.committed&&p.committed<T;
+  const od=pend.filter(t=>t.due&&t.due<T),dt=pend.filter(t=>t.due===T),nod=pend.filter(t=>!t.due);
+  const S={projects:projects.length,released:ps.filter(x=>x.rel).length,done:done.length,pending:pend.length,overdue:od.length,dueToday:dt.length};
+  const att=[];
+  if(od.length)att.push(`${od.length} pending task(s) are past their due date. Each one is listed in red under its developer. Ask for a new date today.`);
+  const lnd=ps.filter(x=>late(x.p)&&!x.p.assignee).map(x=>x.p.name);
+  if(lnd.length)att.push(`${lnd.join(", ")} passed the committed date and has no developer assigned. Assign a developer and confirm a new date.`);
+  const rna=ps.filter(x=>x.rel&&!x.p.actual).map(x=>x.p.name);
+  if(rna.length)att.push(`Released with no actual release date: ${rna.join(", ")}. Enter the dates.`);
+  const ro=ps.filter(x=>x.rel).map(x=>({n:x.p.name,c:pend.filter(t=>t.projectId===x.p.id).length})).filter(x=>x.c);
+  if(ro.length)att.push(`Marked Released but still have open tasks: ${ro.map(x=>x.n+" ("+x.c+" open)").join("; ")}. Confirm whether they are finished.`);
+  nod.forEach(t=>att.push(`No due date: "${t.title}" (${pname(t.projectId)}, ${nm(t.assignee)}). Set a date.`));
+  const seen={};tasks.forEach(t=>{const k=t.projectId+"|"+String(t.title).trim().toLowerCase();if(seen[k])att.push(`Entered twice: "${t.title}". Delete the extra copy.`);seen[k]=1});
+  if(!att.length)att.push("Nothing urgent. All active projects are on track.");
+  return{T,ps,pend,done,S,att};
+}
+function reportHTML(){
+  const R=rData(),T=R.T;
+  const td=(v,st="")=>`<td style="border:1px solid #BFC7D5;padding:4px 6px;vertical-align:top;${st}">${esc(v)}</td>`;
+  const th=(v,w)=>`<th ${w?`width="${w}%"`:""} style="border:1px solid #BFC7D5;padding:4px 6px;background:#1F3864;color:#FFFFFF;text-align:left;${w?"width:"+w+"%":""}">${esc(v)}</th>`;
+  const tbl=(hs,rows,ws)=>`<table width="100%" style="border-collapse:collapse;width:100%;font-size:10pt;margin-bottom:10px"><tr>${hs.map((h,i)=>th(h,ws&&ws[i])).join("")}</tr>${rows}</table>`;
+  const tile=(n,l,bg,c)=>`<td style="background:${bg};text-align:center;padding:10px;border:1px solid #BFC7D5"><div style="font-size:22pt;font-weight:bold;color:${c}">${n}</div><div style="font-size:9pt;color:#5F6B7A">${l}</div></td>`;
+  const tiles=`<table style="width:100%;border-collapse:separate;border-spacing:6px;margin-bottom:12px"><tr>${tile(R.S.projects,`Projects (${R.S.released} released)`,"#EEF2F8","#1F3864")}${tile(R.S.done,"Tasks done","#E8F5E9","#1E7D32")}${tile(R.S.pending,"Tasks pending","#FDECEA","#C62828")}${tile(R.S.overdue,"Pending and overdue","#FDECEA","#C62828")}</tr></table>`;
+  const prow=R.ps.map((x,i)=>{const p=x.p,lt=late0(p,T),col=x.rel?"#1E7D32":lt?"#C62828":"",bg=x.rel?"#E8F5E9":lt?"#FDECEA":"",st=`color:${col};background:${bg}`;return`<tr>${td(i+1,st)}${td(p.name,st)}${td(rOwner(p),st)}${td(p.status,st)}${td("",st)}</tr>`}).join("");
+  const G={};R.pend.forEach(t=>{const k=nm(t.assignee);(G[k]=G[k]||{p:[],d:[]}).p.push(t)});R.done.forEach(t=>{const k=nm(t.assignee);(G[k]=G[k]||{p:[],d:[]}).d.push(t)});
+  const flag=t=>t.due&&t.due<T?"OVERDUE "+fmtD(t.due):t.due===T?"Due today":t.due?"Due "+fmtD(t.due):"No due date";
+  const RED="color:#C62828;background:#FDECEA",GRN="color:#1E7D32;background:#E8F5E9";
+  const devs=Object.keys(G).sort().map(k=>{const g=G[k];let h=`<h2 style="color:${g.p.length?"#C62828":"#1E7D32"};margin:14px 0 4px;font-size:13pt">${esc(k)} \u00b7 ${g.p.length} pending, ${g.d.length} done</h2>`;
+    if(g.p.length)h+=`<p style="color:#C62828;font-weight:bold;margin:4px 0">Pending</p>`+tbl(["Task","Project","Due","Priority"],g.p.map(t=>`<tr>${td(t.title,RED)}${td(pname(t.projectId),RED)}${td(flag(t),RED)}${td(t.priority||"Medium",RED)}</tr>`).join(""));
+    if(g.d.length)h+=`<p style="color:#1E7D32;font-weight:bold;margin:4px 0">Done</p>`+tbl(["Task","Project","Done on","Priority"],g.d.map(t=>`<tr>${td(t.title,GRN)}${td(pname(t.projectId),GRN)}${td(fmtD(t.doneOn),GRN)}${td(t.priority||"Medium",GRN)}</tr>`).join(""));
+    return h}).join("");
+  return`<h1 style="color:#1F3864;margin:0 0 4px;font-size:20pt">SWA Project Status Report</h1>
+<p style="color:#5F6B7A;margin:0 0 6px">Status as of ${fmtD(T)} \u00b7 ${pgroup} projects</p>
+<p style="margin:0 0 10px"><b style="color:#1E7D32">Green = done</b>&nbsp;&nbsp;&nbsp;<b style="color:#C62828">Red = pending, overdue or late</b></p>
+${tiles}
+<h2 style="color:#1F3864;font-size:14pt;margin:14px 0 4px">1. Projects</h2>
+<p style="margin:0 0 6px">${R.S.released} of ${R.S.projects} projects are released. Released projects are green; projects past their committed date are red.</p>
+${tbl(["#","Project","Owner","Status","Date"],prow,[7,28,25,20,20])}
+<h2 style="color:#1F3864;font-size:14pt;margin:14px 0 4px">2. Work under each developer</h2>
+<p style="margin:0 0 6px">Pending tasks come first, in red, then completed tasks in green. Sorted by due date.</p>
+${devs||"<p>No tasks yet.</p>"}
+<h2 style="color:#1F3864;font-size:14pt;margin:14px 0 4px">3. Items that need a decision</h2>
+<ol style="margin:0 0 10px">${R.att.map(a=>`<li style="margin-bottom:6px">${esc(a)}</li>`).join("")}</ol>
+<p style="color:#5F6B7A;font-size:9pt">Generated from the live app data on ${fmtD(T)}.</p>`;
+}
+function late0(p,T){return p.status!=="Released"&&!!p.committed&&p.committed<T}
+function saveBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},1000)}
+function dlWord(){
+  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>SWA Project Status Report</title><style>@page{size:A4;margin:2cm}body{font-family:Calibri,Arial,sans-serif;font-size:10pt;color:#222}</style></head><body>${reportHTML()}</body></html>`;
+  saveBlob(new Blob(["\ufeff",html],{type:"application/msword"}),"SWA-Project-Status-"+today()+".doc");
+}
+function openReport(){
+  let dr=document.getElementById("rdrawer");
+  if(!dr){
+    dr=document.createElement("div");dr.id="rdrawer";
+    dr.innerHTML='<div class="rd-ov"></div><div class="rd-pn"><div class="rd-hd"><b>SWA Project Status Report</b><div class="row"><button class="pri" data-r="copy">Copy for Word</button><button data-r="doc">Download Word (.docx)</button><button data-r="print">Print / Save as PDF</button><button data-r="close">Close</button></div></div><div class="rd-msg"></div><div class="rd-bd"></div></div>';
+    document.body.append(dr);
+    dr.addEventListener("click",async e=>{
+      const b=e.target.closest("[data-r]");
+      if(e.target.classList.contains("rd-ov")||(b&&b.dataset.r==="close")){dr.style.display="none";return}
+      if(!b)return;
+      const msg=dr.querySelector(".rd-msg"),body=dr.querySelector(".rd-bd");msg.textContent="";
+      if(b.dataset.r==="copy"){
+        try{
+          const html="<html><body>"+body.innerHTML+"</body></html>";
+          await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([body.innerText],{type:"text/plain"})})]);
+          msg.textContent="Copied. Open Word and press Ctrl+V (Cmd+V on a Mac).";
+        }catch(x){
+          const r=document.createRange();r.selectNodeContents(body);const s=window.getSelection();s.removeAllRanges();s.addRange(r);
+          let ok=false;try{ok=document.execCommand("copy")}catch(y){}
+          msg.textContent=ok?"Copied. Open Word and press Ctrl+V.":"Copy is blocked here, so the report is selected. Press Ctrl+C (Cmd+C), then paste into Word.";
+        }
+      }
+      if(b.dataset.r==="doc"){downloadDocx(msg)}
+      if(b.dataset.r==="print"){
+        try{const pa=document.getElementById("printArea");pa.innerHTML=reportHTML();window.print();}catch(x){}
+        msg.textContent="If no print window opened, use Copy for Word, or save this page as PDF from the browser menu.";
+      }
+    });
+  }
+  dr.querySelector(".rd-bd").innerHTML=reportHTML();
+  dr.querySelector(".rd-msg").textContent="";
+  dr.style.display="block";
+}
+
+const CRC_T=(()=>{const a=[];for(let n=0;n<256;n++){let x=n;for(let k=0;k<8;k++)x=x&1?0xEDB88320^(x>>>1):x>>>1;a[n]=x>>>0}return a})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC_T[(c^b[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+function zipBlob(files,type){
+  const enc=new TextEncoder(),parts=[],central=[];let off=0;
+  for(const f of files){
+    const nb=enc.encode(f.name),data=f.data,crc=crc32(data);
+    const lh=new Uint8Array(30+nb.length),lv=new DataView(lh.buffer);
+    lv.setUint32(0,0x04034b50,true);lv.setUint16(4,20,true);lv.setUint16(10,0,true);lv.setUint16(12,0x21,true);
+    lv.setUint32(14,crc,true);lv.setUint32(18,data.length,true);lv.setUint32(22,data.length,true);lv.setUint16(26,nb.length,true);lh.set(nb,30);
+    parts.push(lh,data);
+    const ch=new Uint8Array(46+nb.length),cv=new DataView(ch.buffer);
+    cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint16(14,0x21,true);
+    cv.setUint32(16,crc,true);cv.setUint32(20,data.length,true);cv.setUint32(24,data.length,true);cv.setUint16(28,nb.length,true);cv.setUint32(42,off,true);ch.set(nb,46);
+    central.push(ch);off+=lh.length+data.length;
+  }
+  const cd=central.reduce((a,b)=>a+b.length,0),end=new Uint8Array(22),ev=new DataView(end.buffer);
+  ev.setUint32(0,0x06054b50,true);ev.setUint16(8,files.length,true);ev.setUint16(10,files.length,true);ev.setUint32(12,cd,true);ev.setUint32(16,off,true);
+  return new Blob([...parts,...central,end],{type});
+}
+const XE=s=>String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const xr=(t,o={})=>`<w:r><w:rPr>${o.b?"<w:b/>":""}${o.c?`<w:color w:val="${o.c}"/>`:""}<w:sz w:val="${o.sz||20}"/></w:rPr><w:t xml:space="preserve">${XE(t)}</w:t></w:r>`;
+const xp=(runs,o={})=>`<w:p><w:pPr><w:spacing w:before="0" w:after="${o.after==null?120:o.after}"/></w:pPr>${runs}</w:p>`;
+const xcell=(t,w,o={})=>`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${o.fill?`<w:shd w:val="clear" w:color="auto" w:fill="${o.fill}"/>`:""}</w:tcPr>${xp(xr(t,{b:o.b,c:o.c,sz:18}),{after:0})}</w:tc>`;
+function xtable(hs,ws,rows){
+  const hdr=`<w:tr><w:trPr><w:tblHeader/></w:trPr>${hs.map((h,i)=>xcell(h,ws[i],{fill:"1F3864",c:"FFFFFF",b:true})).join("")}</w:tr>`;
+  const body=rows.map(r=>`<w:tr><w:trPr><w:cantSplit/></w:trPr>${r.cells.map((c,i)=>xcell(c,ws[i],{fill:r.fill,c:r.c})).join("")}</w:tr>`).join("");
+  return `<w:tbl><w:tblPr><w:tblW w:w="${ws.reduce((a,b)=>a+b,0)}" w:type="dxa"/><w:tblBorders>${["top","left","bottom","right","insideH","insideV"].map(b=>`<w:${b} w:val="single" w:sz="4" w:space="0" w:color="BFC7D5"/>`).join("")}</w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${ws.map(w=>`<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${hdr}${body}</w:tbl>${xp("",{after:120})}`;
+}
+function docxBody(){
+  const R=rData(),T=R.T,o=[];
+  o.push(xp(xr("SWA Project Status Report",{b:true,c:"1F3864",sz:40}),{after:60}));
+  o.push(xp(xr(`Status as of ${fmtD(T)} \u00b7 ${pgroup} projects`,{c:"5F6B7A",sz:22}),{after:120}));
+  o.push(xp(xr("Green = done     ",{b:true,c:"1E7D32",sz:18})+xr("Red = pending, overdue or late",{b:true,c:"C62828",sz:18}),{after:200}));
+  o.push(xp(xr(`Projects: ${R.S.projects} (${R.S.released} released)    Tasks done: ${R.S.done}    Tasks pending: ${R.S.pending}    Pending and overdue: ${R.S.overdue}`,{b:true,sz:20}),{after:200}));
+  o.push(xp(xr("1. Projects",{b:true,c:"1F3864",sz:28}),{after:80}));
+  o.push(xp(xr(`${R.S.released} of ${R.S.projects} projects are released. Released projects are green; projects past their committed date are red.`),{after:80}));
+  o.push(xtable(["#","Project","Owner","Status","Date"],[500,3200,2600,2200,2246],R.ps.map((x,i)=>{const p=x.p,lt=late0(p,T);return{cells:[String(i+1),p.name,rOwner(p),p.status,""],fill:x.rel?"E8F5E9":lt?"FDECEA":undefined,c:x.rel?"1E7D32":lt?"C62828":undefined}})));
+  o.push(xp(xr("2. Work under each developer",{b:true,c:"1F3864",sz:28}),{after:80}));
+  o.push(xp(xr("Pending tasks come first, in red, then completed tasks in green. Sorted by due date."),{after:80}));
+  const G={};R.pend.forEach(t=>{const k=nm(t.assignee);(G[k]=G[k]||{p:[],d:[]}).p.push(t)});R.done.forEach(t=>{const k=nm(t.assignee);(G[k]=G[k]||{p:[],d:[]}).d.push(t)});
+  const flag=t=>t.due&&t.due<T?"OVERDUE "+fmtD(t.due):t.due===T?"Due today":t.due?"Due "+fmtD(t.due):"No due date";
+  Object.keys(G).sort().forEach(k=>{const g=G[k];
+    o.push(xp(xr(`${k} \u00b7 ${g.p.length} pending, ${g.d.length} done`,{b:true,c:g.p.length?"C62828":"1E7D32",sz:24}),{after:80}));
+    if(g.p.length){o.push(xp(xr("Pending",{b:true,c:"C62828"}),{after:60}));o.push(xtable(["Task","Project","Due","Priority"],[4300,2400,1900,1146],g.p.map(t=>({cells:[t.title,pname(t.projectId),flag(t),t.priority||"Medium"],fill:"FDECEA",c:"C62828"}))));}
+    if(g.d.length){o.push(xp(xr("Done",{b:true,c:"1E7D32"}),{after:60}));o.push(xtable(["Task","Project","Done on","Priority"],[4300,2400,1900,1146],g.d.map(t=>({cells:[t.title,pname(t.projectId),fmtD(t.doneOn),t.priority||"Medium"],fill:"E8F5E9",c:"1E7D32"}))));}
+  });
+  o.push(xp(xr("3. Items that need a decision",{b:true,c:"1F3864",sz:28}),{after:80}));
+  R.att.forEach((a,i)=>o.push(xp(xr(`${i+1}. ${a}`),{after:80})));
+  return o.join("");
+}
+function buildDocx(){
+  const body=docxBody(),enc=new TextEncoder();
+  const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  return zipBlob([{name:"[Content_Types].xml",data:enc.encode(ct)},{name:"_rels/.rels",data:enc.encode(rels)},{name:"word/document.xml",data:enc.encode(doc)}],"application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+}
+async function downloadDocx(msg){
+  const name="SWA-Project-Status-"+today()+".docx",blob=buildDocx();
+  let dl=null;try{dl=typeof claude!=="undefined"&&claude.use?await claude.use("downloads"):null}catch(e){}
+  if(!dl){saveBlob(blob,name);msg.textContent="Download started. If nothing is saved, use Copy for Word instead.";return}
+  try{await dl.save({filename:name,data:blob});msg.textContent="Saved: "+name}
+  catch(e){const c=e&&e.code;msg.textContent=c==="declined"?"Save was cancelled.":c==="too_large"?"File too large to save.":"Download is not available here. Use Copy for Word instead."}
+}
+function dlPdf(){const pa=document.getElementById("printArea");pa.innerHTML=reportHTML();window.print()}
+function gTabs(){return`<div class="tabs" style="margin-bottom:12px">${GROUPS.map(g=>`<button data-act="ptab" data-k="${g}" class="${pgroup===g?"on":""}">${g} (${projects.filter(p=>grp(p)===g).length})</button>`).join("")}</div>`}
+function vWeeklyFriendly(){
+  const _P=allP(),_T=allT(),_gid=new Set(_P.filter(p=>grp(p)===pgroup).map(p=>p.id));
+  const projects=_P.filter(p=>_gid.has(p.id)),tasks=_T.filter(t=>_gid.has(t.projectId));
+  const days=weekDays(),in7=d=>!!d&&days.includes(d),T=today(),since=Date.now()-7*864e5;
+  const lastAct=p=>{const a=[...updates.filter(u=>u.projectId===p.id).map(u=>u.ts||0),...tasks.filter(t=>t.projectId===p.id).map(t=>t.updatedTs||0)];return a.length?Math.max(...a):0};
+  const ord=projects.map(p=>({p,la:lastAct(p)})).sort((a,b)=>(b.la>=since)-(a.la>=since)||(a.la>=since?b.la-a.la:byOrder(a.p,b.p))).map(x=>x.p);
+  const open=tasks.filter(t=>t.status!=="Done"),od=open.filter(t=>t.due&&t.due<T),doneW=tasks.filter(t=>t.status==="Done"&&in7(t.doneOn)),touched=projects.filter(p=>lastAct(p)>=since);
+  const att=[];
+  projects.filter(p=>stOf(p)!=="Released").forEach(p=>{
+    const o=tasks.filter(t=>t.projectId===p.id&&t.status!=="Done"&&t.due&&t.due<T).length,l=lastUp(p.id);
+    if(stOf(p)==="Blocked / On Hold")att.push(["bad",p.name,"is blocked"+(l&&l.blocker?": "+l.blocker:"")]);
+    if(o)att.push(["bad",p.name,o+" overdue task"+(o>1?"s":"")]);
+    if(p.committed&&p.committed<T)att.push(["bad",p.name,"is past its committed date ("+fd(p.committed)+")"]);
+    if(lastAct(p)<since)att.push(["warn",p.name,"has no activity this week"]);
+    if(!p.assignee)att.push(["warn",p.name,"has no developer assigned"]);
+  });
+  const tile=(n,l,c="")=>`<div class="tile ${c}"><div class="tn">${n}</div><div class="tl">${l}</div></div>`;
+  const head=`<div class="mu" style="margin-bottom:8px">Last 7 days · ${fd(days[6])} to ${fd(days[0])} · updates automatically</div>
+  <div class="tiles">${tile(touched.length+" / "+projects.length,"Projects with activity")}${tile(doneW.length,"Tasks done this week","ok")}${tile(open.length,"Tasks pending")}${tile(od.length,"Tasks overdue",od.length?"bad":"")}</div>
+  <h2>Needs your attention</h2><div class="card">${att.length?att.slice(0,10).map(([c,n,m])=>`<div class="at"><span class="dot ${c}"></span><b>${esc(n)}</b> ${esc(m)}</div>`).join(""):"Nothing urgent. Active projects look on track."}</div>
+  <h2>Projects <span class="mu">(latest activity first)</span></h2><div class="row" style="margin-bottom:8px"><button class="pri" data-act="rview">View report (Word / PDF)</button> <button data-act="xall" data-k="1">Expand all</button><button data-act="xall" data-k="0">Collapse all</button></div>`;
+  const rows=ord.map(p=>{
+    const ups=updates.filter(u=>u.projectId===p.id&&in7(u.date)),pt=tasks.filter(t=>t.projectId===p.id),la=lastAct(p),hot=la>=since;
+    const pend=pt.filter(t=>t.status!=="Done"),done=pt.filter(t=>t.status==="Done"&&in7(t.doneOn)),tl=[...pend,...done].sort(tcmp),odn=pend.filter(t=>t.due&&t.due<T).length;
+    const l=lastUp(p.id),reason=[l&&l.blocker&&"Blocker: "+l.blocker,l&&l.reason&&"Delay reason: "+l.reason].filter(Boolean).join(" · ");
+    const ev=ups.map(u=>`<div class="ev"><span class="dt">${fd(u.date)}</span><div><b>${esc(u.task||"Update")}</b> <span class="mu">· ${esc(nm(u.userId))}${u.byAdmin?" (entered by admin)":""} · ${esc(u.status)}${u.dev!==""&&u.dev!=null?" · Dev "+esc(u.dev)+"%":""}${u.qa!==""&&u.qa!=null?" · QA "+esc(u.qa)+"%":""}</span>${u.next?`<div>Next: ${esc(u.next)}${u.nextDate?" by "+fd(u.nextDate):""}</div>`:""}${(u.blocker||u.reason||u.remark)?`<div class="mu">${esc([u.blocker&&"Blocker: "+u.blocker,u.reason&&"Reason: "+u.reason,u.remark].filter(Boolean).join(" · "))}</div>`:""}</div></div>`).join("");
+    const tk=tl.map(t=>{const dn=t.status==="Done",o=!dn&&t.due&&t.due<T;return`<div class="tk"><span class="ck ${dn?"ok":o?"bad":""}">${dn?"✓":"○"}</span><div><b>${esc(t.title)}</b>${t.priority==="High"?' <span class="fl bad">HIGH</span>':""} <span class="mu">· ${esc(nm(t.assignee))} · ${t.createdByRole==="admin"?"from admin":"added by developer"}${t.due?" · due "+fd(t.due):""}${o?" · overdue":""} · ${esc(t.status)}</span>${dn?"":`<div class="mu">Why pending: ${esc(why(t))}</div>`}<div>${imgs(t)}</div></div></div>`}).join("");
+    const why1=reason||(pend.length?(pend.map(why).find(x=>x!=="No reason given")||"No reason given yet"):(hot?"":"No update received this week"));
+    return`<details class="xr" data-x="${p.id}" style="${hot?"":"opacity:.7"}" ${openX.has(p.id)?"open":""}><summary><span class="sn">${esc(p.name)}</span><span class="st">${esc(nm(p.assignee))}</span><span class="st">${hot?"Last activity "+ago(la):"No activity this week"}</span><span class="st">${pend.length} pending${odn?", "+odn+" overdue":""} · ${done.length} done</span>${hot?"":'<span class="fl warn">NOT TOUCHED</span>'}<span>${fl(p)}</span></summary><div class="xb">
+    ${stOf(p)!=="Released"&&why1?`<div class="why"><b>Why it is pending:</b> ${esc(why1)}</div>`:""}
+    <h3>What happened this week</h3>${ev||'<div class="mu">No updates this week.</div>'}
+    <h3>Tasks</h3>${tk||'<div class="mu">No tasks.</div>'}</div></details>`}).join("");
+  return gTabs()+head+(rows||'<div class="card">No projects yet.</div>');
+}
+function vWeeklyProj(){
+  const days=weekDays(),wd=days.filter(wk),in7=d=>!!d&&days.includes(d),T=today();
+  const tbl=(h,rows,empty)=>`<div class="scroll" style="margin-bottom:8px"><table style="min-width:640px"><tr>${h.map(x=>`<th>${x}</th>`).join("")}</tr>${rows||`<tr><td colspan="${h.length}" class="mu">${empty}</td></tr>`}</table></div>`;
+  const since=Date.now()-7*864e5,lastAct=p=>{const a=[...updates.filter(u=>u.projectId===p.id).map(u=>u.ts||0),...tasks.filter(t=>t.projectId===p.id).map(t=>t.updatedTs||0)];return a.length?Math.max(...a):0};
+  const ord=projects.map(p=>({p,la:lastAct(p)})).sort((a,b)=>(b.la>=since)-(a.la>=since)||(a.la>=since?b.la-a.la:byOrder(a.p,b.p))).map(x=>x.p);
+  const cards=ord.map(p=>{
+    const ups=updates.filter(u=>u.projectId===p.id&&in7(u.date)),pt=tasks.filter(t=>t.projectId===p.id);
+    const adm=pt.filter(t=>t.createdByRole==="admin"&&(t.status!=="Done"||in7(t.doneOn))),
+      own=pt.filter(t=>t.createdByRole==="developer"&&(in7(t.createdOn)||in7(t.doneOn))),
+      pend=adm.filter(t=>t.status!=="Done"),od=pend.filter(t=>t.due&&t.due<T),
+      done=pt.filter(t=>t.status==="Done"&&in7(t.doneOn));
+    const la=lastAct(p),touched=la>=since;
+    const lu=ups[0],reason=[lu&&lu.blocker&&"Blocker: "+lu.blocker,lu&&lu.reason&&"Delay reason: "+lu.reason].filter(Boolean).join(" · ");
+    const sum=`${ups.length} daily update(s) this week${ups.length?" ("+[...new Set(ups.map(u=>nm(u.userId)))].join(", ")+")":", none from the developer"}. Admin assigned ${adm.length} task(s): ${adm.length-pend.length} done, ${pend.length} pending${od.length?`, ${od.length} overdue`:""}. Developer added ${own.length} task(s): ${own.filter(t=>t.status==="Done").length} done. Completed this week: ${done.length}${done.length?" ("+done.map(t=>t.title).join("; ")+")":""}.`;
+    const dr=ups.map(u=>`<tr><td>${esc(u.date)}</td><td>${esc(nm(u.userId))}</td><td>${esc(u.task||"—")}${u.next?`<div class="mu">Next: ${esc(u.next)}${u.nextDate?" ("+esc(u.nextDate)+")":""}</div>`:""}</td><td>${esc(u.status)}</td><td>${u.dev===""||u.dev==null?"—":esc(u.dev)}% / ${u.qa===""||u.qa==null?"—":esc(u.qa)}%</td><td>${esc([u.blocker&&"Blocker: "+u.blocker,u.reason&&"Reason: "+u.reason,u.remark].filter(Boolean).join(" · ")||"—")}</td></tr>`).join("");
+    const ar=adm.map(t=>`<tr><td>${esc(t.title)}<div>${imgs(t)}</div></td><td>${esc(nm(t.assignee))}</td><td>${dt(t.due)}${t.status!=="Done"&&t.due&&t.due<T?' <span class="fl bad">OVERDUE</span>':""}</td><td>${esc(t.status)}</td><td>${t.status==="Done"?"—":esc(why(t))}</td></tr>`).join("");
+    const or=own.map(t=>`<tr><td>${esc(t.title)}<div>${imgs(t)}</div></td><td>${esc(nm(t.assignee))}</td><td>${dt(t.createdOn)}</td><td>${esc(t.status)}</td><td>${esc(t.note||"—")}</td></tr>`).join("");
+    return`<details class="xr" data-x="${p.id}" style="${touched?"":"opacity:.7"}" ${openX.has(p.id)?"open":""}><summary><span class="sn">${esc(p.name)}</span><span class="st">${esc(nm(p.assignee))}</span><span class="st">${touched?"Last activity "+iso(new Date(la)):"No activity this week"}</span><span class="st">${ups.length} update(s)</span><span class="st">Assigned: ${adm.length}</span><span class="st">Done: ${done.length}</span><span class="st">Pending: ${pend.length}${od.length?" ("+od.length+" overdue)":""}</span><span class="st">Developer added: ${own.length}</span>${touched?"":'<span class="fl warn">NOT TOUCHED</span>'}<span>${fl(p)}</span></summary><div class="xb">
+    <div class="mu">Developer: ${esc(nm(p.assignee))} · Status: ${esc(stOf(p))} · Committed: ${dt(p.committed)}</div>
+    <div style="margin:8px 0">${sum}${stOf(p)!=="Released"?`<div><b>Why pending:</b> ${esc(reason||"No blocker or reason given")}</div>`:""}</div>
+    <b>Daily log (what happened)</b>${tbl(["Date","By","Work done","Status","Dev % / QA %","Blocker / reason / remark"],dr,"No daily updates this week.")}
+    <b>Assigned by admin</b>${tbl(["Task","Developer","Due","Status","Why pending"],ar,"No admin tasks.")}
+    <b>Added by developer</b>${tbl(["Task","Developer","Date","Status","Note"],or,"Nothing added this week.")}</div></details>`}).join("");
+  const allPend=tasks.filter(t=>t.createdByRole==="admin"&&t.status!=="Done"),allOd=allPend.filter(t=>t.due&&t.due<T);
+  const own7=tasks.filter(t=>t.createdByRole==="developer"&&(in7(t.createdOn)||in7(t.doneOn)));
+  const miss=devs().filter(d=>!updates.some(u=>u.userId===d.id&&u.date===T)).length;
+  const head=`<div style="margin-bottom:10px"><b>Auto summary by project (latest activity first) · ${days[6]} to ${days[0]}</b><div style="margin-top:4px">${allPend.length} admin-assigned task(s) pending (${allOd.length} overdue). ${own7.length} task(s) added by developers this week. ${miss} developer(s) have not sent today’s update.</div><div class="mu">Generated automatically from developers’ daily updates and tasks. Nothing to type here.</div></div>`;
+  return gTabs()+head+`<div class="row" style="margin-bottom:8px"><button data-act="xall" data-k="1">Expand all</button><button data-act="xall" data-k="0">Collapse all</button></div>`+(cards||'<div class="card">No project activity this week.</div>');
+}
+function vWeeklyDev(){
+  const days=weekDays(),wd=days.filter(wk),in7=d=>!!d&&days.includes(d),T=today();
+  const tbl=(h,rows,empty)=>`<div class="scroll" style="margin-bottom:8px"><table style="min-width:640px"><tr>${h.map(x=>`<th>${x}</th>`).join("")}</tr>${rows||`<tr><td colspan="${h.length}" class="mu">${empty}</td></tr>`}</table></div>`;
+  const cards=devs().map(d=>{
+    const id=d.id,adm=tasks.filter(t=>t.assignee===id&&t.createdByRole==="admin"&&(t.status!=="Done"||in7(t.doneOn))),
+      own=tasks.filter(t=>t.assignee===id&&t.createdByRole==="developer"&&(in7(t.createdOn)||in7(t.doneOn))),
+      ups=updates.filter(u=>u.userId===id&&in7(u.date)),
+      pend=adm.filter(t=>t.status!=="Done"),od=pend.filter(t=>t.due&&t.due<T),
+      did=wd.filter(x=>updates.some(u=>u.userId===id&&u.date===x)).length;
+    const sum=`${esc(d.name)} sent daily updates on ${did} of ${wd.length} working days. Admin assigned ${adm.length} task(s): ${adm.length-pend.length} done, ${pend.length} pending${od.length?`, ${od.length} overdue`:""}. Developer added ${own.length} task(s) this week: ${own.filter(t=>t.status==="Done").length} done.`;
+    const ar=adm.map(t=>`<tr><td>${esc(t.title)}</td><td>${esc(pname(t.projectId))}</td><td>${dt(t.due)}${t.status!=="Done"&&t.due&&t.due<T?' <span class="fl bad">OVERDUE</span>':""}</td><td>${esc(t.status)}</td><td>${t.status==="Done"?"—":esc(why(t))}</td></tr>`).join("");
+    const or=own.map(t=>`<tr><td>${esc(t.title)}</td><td>${esc(pname(t.projectId))}</td><td>${dt(t.createdOn)}</td><td>${esc(t.status)}</td><td>${esc(t.note||"—")}</td></tr>`).join("");
+    const ur=ups.map(u=>`<tr><td>${esc(u.date)}</td><td>${esc(pname(u.projectId))}</td><td>${esc(u.task||"—")}</td><td>${esc(u.status)}</td><td>${esc([u.blocker&&"Blocker: "+u.blocker,u.reason&&"Reason: "+u.reason].filter(Boolean).join(" · ")||"—")}</td></tr>`).join("");
+    return`<div class="card"><h2 style="margin-top:0">${esc(d.name)}</h2><div style="margin-bottom:8px">${sum}</div>
+    <b>Assigned by admin</b>${tbl(["Task","Project","Due","Status","Why pending"],ar,"No admin tasks.")}
+    <b>Added by developer</b>${tbl(["Task","Project","Date","Status","Note"],or,"Nothing added this week.")}
+    <b>Daily updates</b>${tbl(["Date","Project","Work done","Status","Blocker / reason"],ur,"No daily updates this week.")}</div>`}).join("");
+  const allPend=tasks.filter(t=>t.createdByRole==="admin"&&t.status!=="Done"),allOd=allPend.filter(t=>t.due&&t.due<T);
+  const own7=tasks.filter(t=>t.createdByRole==="developer"&&(in7(t.createdOn)||in7(t.doneOn)));
+  const miss=devs().filter(d=>!updates.some(u=>u.userId===d.id&&u.date===T)).length;
+  const head=`<div class="card"><b>Auto summary · ${days[6]} to ${days[0]}</b><div style="margin-top:6px">${allPend.length} admin-assigned task(s) pending (${allOd.length} overdue). ${own7.length} task(s) added by developers this week. ${miss} developer(s) have not sent today’s update.</div><div class="mu">Generated automatically from developers’ daily updates and tasks. Nothing to type here.</div></div>`;
+  const prow=projects.slice().sort(byOrder).map(p=>{const w=updates.filter(u=>u.projectId===p.id&&in7(u.date)),l=w[0];
+    return`<tr><td><b>${esc(p.name)}</b></td><td>${esc(nm(p.assignee))}</td><td>${w.length}</td><td>${esc(stOf(p))}</td><td>${fl(p)}</td><td>${dt(p.committed)}</td><td>${[...new Set(w.map(u=>u.reason).filter(Boolean))].map(esc).join("; ")||"—"}</td><td>${l&&l.blocker?esc(l.blocker):"—"}</td></tr>`}).join("");
+  return head+(cards||'<div class="card">No developers yet.</div>')+`<h2>Project overview</h2>`+tbl(["Project","Developer","Updates","Status","Flag","Committed","Delay reasons","Blocker"],prow,"No projects.");
+}
+function vWeeklyOld(){
+  const days=weekDays(),wd=days.filter(d=>{const g=new Date(d+"T00:00:00").getDay();return g>0&&g<6});
+  const ids=[...new Set(projects.map(p=>p.assignee).filter(Boolean))];
+  const drows=ids.map(id=>{
+    const mine=projects.filter(p=>p.assignee===id),done=wd.filter(d=>updates.some(u=>u.userId===id&&u.date===d)).length;
+    return`<tr><td><b>${esc(nm(id))}</b></td><td>${mine.map(p=>esc(p.name)).join(", ")}</td><td>${done} of ${wd.length}</td><td>${mine.filter(p=>flag(p)[0]==="OVERDUE").length}</td><td>${mine.filter(p=>flag(p)[0]==="BLOCKED").length}</td></tr>`}).join("");
+  const prow=projects.slice().sort(byOrder).map(p=>{
+    const w=updates.filter(u=>u.projectId===p.id&&days.includes(u.date)),l=w[0];
+    return`<tr><td><b>${esc(p.name)}</b></td><td>${esc(nm(p.assignee))}</td><td>${w.length}</td><td>${esc(stOf(p))}</td><td>${fl(p)}</td><td>${dt(p.committed)}</td><td>${l?dt(l.finalDate):"—"}</td><td>${[...new Set(w.map(u=>u.reason).filter(Boolean))].map(esc).join("; ")||"—"}</td><td>${l&&l.blocker?esc(l.blocker):"—"}</td></tr>`}).join("");
+  return`<h2>By developer (last 7 days: ${days[6]} to ${days[0]})</h2><div class="scroll"><table><tr><th>Developer</th><th>Projects</th><th>Days updated</th><th>Overdue</th><th>Blocked</th></tr>${drows||'<tr><td colspan="5">No projects assigned yet.</td></tr>'}</table></div>
+  <h2>By project</h2><div class="scroll"><table><tr><th>Project</th><th>Developer</th><th>Updates</th><th>Status</th><th>Flag</th><th>Committed</th><th>Dev final date</th><th>Delay reasons</th><th>Blocker</th></tr>${prow}</table></div>`;
+}
+function vMine(){
+  const mine=projects.filter(p=>p.assignee===me.id);
+  if(!mine.length)return`<div class="card">No projects are assigned to you yet. Ask your admin to assign them.</div>`;
+  return mine.map(p=>{
+    const t=updates.find(u=>u.projectId===p.id&&u.date===today()),l=t||lastUp(p.id)||{};
+    const f=(n,lb,ty="text")=>`<label>${lb}<input name="${n}" type="${ty}" value="${esc(l[n])}"></label>`;
+    return`<div class="card" data-pid="${p.id}"><div class="row" style="justify-content:space-between"><b>${esc(p.name)}</b><span>${fl(p)} ${t?'<span class="fl ok">Updated today ✓</span>':'<span class="fl warn">Update due today</span>'}</span></div>
+    <div class="mu">Committed date: ${dt(p.committed)}</div><div class="grid" style="margin-top:8px">
+    ${f("task","Task (what you are working on)")}
+    <label>Status<select name="status">${ST.map(s=>`<option ${s===(l.status||p.status)?"selected":""}>${s}</option>`).join("")}</select></label>
+    ${f("dev","Dev %","number")}${f("qa","QA %","number")}${f("blocker","Blocker")}${f("reason","Why delayed (reason)")}
+    ${f("next","Next action you will deliver")}${f("nextDate","Corresponding date","date")}${f("finalDate","Final date (ready)","date")}${f("remark","Remark")}</div>
+    <div class="row" style="margin-top:8px"><button class="pri" data-act="save" data-id="${p.id}">Save today’s update</button><span class="mu" data-msg></span></div></div>`}).join("");
+}
+
+app.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="lp")doLogin()});
+let dragId=null;
+async function saveOrder(list){try{for(let i=0;i<list.length;i++){if(list[i].order!==i)await db.doc("projects/"+list[i].id).update({order:i})}}catch(err){alert("Could not save order: "+(err.message||err.code||err))}}
+app.addEventListener("dragstart",e=>{const h=e.target.closest&&e.target.closest("[data-drag]");if(!h)return;dragId=h.dataset.drag;e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",dragId)}catch(x){}});
+app.addEventListener("dragover",e=>{if(!dragId)return;const r=e.target.closest("tr[data-row]");if(!r)return;e.preventDefault();app.querySelectorAll("tr.over").forEach(x=>x.classList.remove("over"));r.classList.add("over")});
+app.addEventListener("drop",async e=>{
+  if(!dragId)return;e.preventDefault();const r=e.target.closest("tr[data-row]"),from=dragId;dragId=null;
+  app.querySelectorAll("tr.over").forEach(x=>x.classList.remove("over"));
+  if(!r||r.dataset.row===from)return;
+  const list=projects.slice().sort(byOrder),fi=list.findIndex(p=>p.id===from),ti=list.findIndex(p=>p.id===r.dataset.row);
+  const [m]=list.splice(fi,1);list.splice(ti,0,m);await saveOrder(list);
+});
+app.addEventListener("dragend",()=>{dragId=null;app.querySelectorAll("tr.over").forEach(x=>x.classList.remove("over"))});
+app.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-act]");if(!b)return;const a=b.dataset.act,id=b.dataset.id;note="";
+  try{
+  if(a==="login")await doLogin();
+  else if(a==="logout"){try{await api("POST","/api/logout")}catch(x){}me=null;isAdmin=false;db.reset();render()}
+  else if(a==="tab"){tab=b.dataset.k;assigning=null;render()}
+  else if(a==="up"||a==="down"){const list=projects.slice().sort(byOrder),sub=list.filter(p=>grp(p)===pgroup),i=sub.findIndex(p=>p.id===id),j=a==="up"?i-1:i+1;if(i<0||j<0||j>=sub.length)return;const x=list.indexOf(sub[i]),y=list.indexOf(sub[j]);[list[x],list[y]]=[list[y],list[x]];await saveOrder(list)}
+  else if(a==="ptab"){pgroup=b.dataset.k;assigning=null;render()}
+  else if(a==="assign"){assigning=assigning===id?null:id;render()}
+  else if(a==="pick"){await db.doc("projects/"+id).update({assignee:b.dataset.uid});assigning=null}
+  else if(a==="add"){const n=$("#np").value.trim(),d=$("#nd").value;if(!n)return;
+    await db.collection("projects").add({name:n,group:pgroup,order:projects.length,devLabel:"",status:"Not Started",baseline:d,committed:d,actual:"",assignee:null,dateLog:[],createdOn:today()})}
+  else if(a==="use"){const p=projects.find(x=>x.id===id),l=lastUp(id);
+    await db.doc("projects/"+id).update({committed:l.finalDate,dateLog:[...(p.dateLog||[]),{on:today(),from:p.committed||"",to:l.finalDate}]})}
+  else if(a==="adminupd"){
+    const pid=$("#ap").value,date=$("#adt").value||today(),p=projects.find(x=>x.id===pid);let uid=$("#ad").value;
+    if(!p){alert("Choose a project.");return}
+    if(!uid)uid=p.assignee||"";if(!uid){alert("Choose a developer, or assign one to the project first.");return}
+    const nv=i=>{const v=$("#"+i).value;return v===""?"":Number(v)},sv=i=>$("#"+i).value.trim();
+    await db.doc("updates/"+pid+"_"+date).set({projectId:pid,userId:uid,date,ts:Date.now(),byAdmin:true,enteredBy:me.id,task:sv("at"),status:$("#as").value,dev:nv("adv"),qa:nv("aq"),blocker:sv("ab"),reason:sv("ar"),next:sv("an"),nextDate:$("#and").value,finalDate:$("#af").value,remark:sv("am")});
+    note="Update saved";render()}
+  else if(a==="edit"){editId=id;render();window.scrollTo(0,0)}
+  else if(a==="editcancel"){editId=null;render()}
+  else if(a==="editsave"){
+    const t=tasks.find(x=>x.id===id);if(!t)return;
+    const g=i=>{const e=document.getElementById(i);return e?e.value:undefined};
+    const u={};
+    const title=g("ed_title");if(title!==undefined){if(!title.trim()){alert("Enter the task name.");return}u.title=title.trim()}
+    if(isAdmin){u.projectId=g("ed_project");u.assignee=g("ed_assignee")}
+    u.due=g("ed_due")||"";u.priority=g("ed_priority");u.status=g("ed_status");
+    u.note=(g("ed_note")||"").trim();u.pendingReason=(g("ed_pending")||"").trim();
+    u.doneOn=u.status==="Done"?(t.doneOn||today()):"";u.updatedTs=Date.now();
+    await db.doc("tasks/"+id).update(u);editId=null;note="Task updated";render();
+  }
+  else if(a==="rview")openReport();
+  else if(a==="exp"){if(b.dataset.k==="csv")exportCsv(exportRows,exportTitle);else exportPdf(exportRows,exportTitle)}
+  else if(a==="df"){df=b.dataset.k;render()}
+  else if(a==="dfclear"){df="all";dfrom="";dto="";pf="";render()}
+  else if(a==="pf"){pf=b.dataset.k;render()}
+  else if(a==="img"){
+    const d=document.createElement("div"),im=document.createElement("img"),bar=document.createElement("div"),cb=document.createElement("button"),cl=document.createElement("button"),ms=document.createElement("span");
+    d.className="lb";im.src=b.dataset.src;
+    bar.style.cssText="position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;left:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end";
+    cb.textContent="Copy image";cl.textContent="Close";ms.style.cssText="color:#fff;font-size:12px";
+    cb.onclick=async ev=>{ev.stopPropagation();ms.textContent="";try{
+      const bl=await (await fetch(b.dataset.src)).blob(),bm=await createImageBitmap(bl),cv=document.createElement("canvas");
+      cv.width=bm.width;cv.height=bm.height;cv.getContext("2d").drawImage(bm,0,0);
+      const png=await new Promise(r=>cv.toBlob(r,"image/png"));
+      await navigator.clipboard.write([new ClipboardItem({"image/png":png})]);ms.textContent="Copied ✓";
+    }catch(x){ms.textContent="Copy is blocked here. Right-click (or long-press) the image and choose Copy image."}};
+    cl.onclick=ev=>{ev.stopPropagation();d.remove()};
+    im.onclick=ev=>ev.stopPropagation();
+    bar.append(ms,cb,cl);d.append(im,bar);d.onclick=()=>d.remove();document.body.append(d)}
+  else if(a==="theme"){const o=["auto","light","dark"],n=o[(o.indexOf(getTheme())+1)%3];try{localStorage.setItem(themeKey,n)}catch(x){}applyTheme(n);if(me)render();else b.textContent=themeLabel()}
+  else if(a==="xall"){app.querySelectorAll("details.xr").forEach(d=>{d.open=b.dataset.k==="1"})}
+  else if(a==="tsub"){tsub=b.dataset.k;render()}
+  else if(a==="addtask"){
+    const pid=$("#tp").value,title=$("#tt").value.trim(),who=$("#tw").value;
+    if(!pid||!title||!who){alert("Choose a project and a developer, and enter the task.");return}
+    const images=await upFiles($("#ti"));
+    await db.collection("tasks").add({projectId:pid,title,assignee:who,images,createdBy:me.id,createdByRole:"admin",status:"To Do",priority:$("#tpr").value,due:$("#td").value,note:$("#tn").value.trim(),createdOn:today(),doneOn:"",updatedTs:Date.now()});note="Task assigned";render()}
+  else if(a==="addmine"){
+    const pid=$("#mp").value,title=$("#mt").value.trim(),st=$("#ms").value;
+    if(!pid||!title){alert("Choose a project and enter the task.");return}
+    const images=await upFiles($("#mi"));
+    await db.collection("tasks").add({projectId:pid,title,assignee:me.id,images,createdBy:me.id,createdByRole:"developer",status:st,priority:$("#mpr").value,due:$("#md").value,note:$("#mn").value.trim(),createdOn:today(),doneOn:st==="Done"?today():"",updatedTs:Date.now()});note="Task added";render()}
+  else if(a==="deltask"){if(delId!==id){delId=id;render();return}delId=null;await db.doc("tasks/"+id).delete();toast("Task deleted")}
+  else if(a==="adddev"){
+    const r=await api("POST","/api/users",{name:$("#dn").value.trim(),username:$("#du").value.trim(),password:$("#dp").value});
+    await db.refresh();note=r.login?"Created login: "+r.id:"Added (no login): "+$("#dn").value.trim();render();
+  }
+  else if(a==="reset"){const pw=$("#rp_"+id).value;if(!pw){alert("Type a new password first.");return}
+    await api("POST","/api/users/"+encodeURIComponent(id)+"/password",{password:pw});note="Password reset";render()}
+  else if(a==="remove"){if(delId!==id){delId=id;render();return}delId=null;await api("DELETE","/api/users/"+encodeURIComponent(id));await db.refresh();toast("Developer removed")}
+  else if(a==="chpw"){const pw=$("#np1").value;if(pw.length<4){alert("Use at least 4 characters.");return}
+    await api("POST","/api/password",{password:pw});note="Password changed";render()}
+  else if(a==="save"){
+    const card=b.closest(".card"),d={projectId:id,userId:me.id,date:today(),ts:Date.now()};
+    card.querySelectorAll("[name]").forEach(i=>d[i.name]=(i.type==="number"&&i.value!=="")?Number(i.value):i.value);
+    await db.doc("updates/"+id+"_"+today()).set(d);
+    const m=card.querySelector("[data-msg]");if(m)m.textContent="Saved ✓";
+  }}catch(err){alert("Could not save: "+(err.message||err.code||err))}
+});
+app.addEventListener("change",async e=>{
+  const f=e.target.dataset.f,id=e.target.dataset.id;if(!f||!isAdmin)return;const p=projects.find(x=>x.id===id),v=e.target.value;
+  try{
+    if(f==="committed")await db.doc("projects/"+id).update({committed:v,dateLog:[...(p.dateLog||[]),{on:today(),from:p.committed||"",to:v}]});
+    else await db.doc("projects/"+id).update({[f]:v});
+  }catch(err){alert("Could not save: "+(err.message||err.code||err))}
+});
+
+async function api(method,url,body){
+  const r=await fetch(url,{method,headers:body!==undefined?{"Content-Type":"application/json"}:{},body:body!==undefined?JSON.stringify(body):undefined,credentials:"same-origin"});
+  let j=null;try{j=await r.json()}catch(e){}
+  if(r.status===401&&me&&url!=="/api/login"){me=null;isAdmin=false;loginMsg="Your session expired. Please sign in again.";render()}
+  if(!r.ok)throw new Error((j&&j.error)||("Request failed ("+r.status+")"));
+  return j;
+}
+const COLS=["users","projects","updates","tasks"];
+const subs={},lastSig={};
+async function sync(c){
+  try{
+    const rows=await api("GET","/api/c/"+c);
+    const arr=rows.map(r=>({id:r.id,...r.data}));
+    const sig=JSON.stringify(arr);
+    if(sig===lastSig[c])return;
+    lastSig[c]=sig;
+    if(c==="users")users=arr;else if(c==="projects")projects=arr;else if(c==="updates")updates=arr;else if(c==="tasks")tasks=arr;
+    const cb=subs[c];
+    if(cb)cb({docs:arr.map(d=>({id:d.id,data:()=>{const x={...d};delete x.id;return x}}))});
+  }catch(e){}
+}
+function makeDb(){
+  return{
+    collection:c=>({
+      onSnapshot(cb){subs[c]=cb;sync(c)},
+      get:()=>api("GET","/api/c/"+c),
+      add:async d=>{const r=await api("POST","/api/c/"+c,d);await sync(c);return r}
+    }),
+    doc:p=>{
+      const i=p.indexOf("/"),c=p.slice(0,i),base="/api/c/"+c+"/"+encodeURIComponent(p.slice(i+1));
+      return{
+        get:()=>api("GET","/api/c/"+c),
+        set:async d=>{const r=await api("PUT",base,d);await sync(c);return r},
+        update:async d=>{const r=await api("PATCH",base,d);await sync(c);return r},
+        delete:async()=>{const r=await api("DELETE",base);await sync(c);return r}
+      };
+    },
+    reset(){for(const k in lastSig)delete lastSig[k]},
+    refresh:async()=>{for(const c of COLS)await sync(c)}
+  };
+}
+(async()=>{
+  db=makeDb();
+  db.collection("users").onSnapshot(s=>{users=s.docs.map(d=>({id:d.id,...d.data()}));render()});
+  db.collection("projects").onSnapshot(s=>{projects=s.docs.map(d=>({id:d.id,...d.data()}));render()});
+  db.collection("updates").onSnapshot(s=>{updates=s.docs.map(d=>({id:d.id,...d.data()}));render()});
+  db.collection("tasks").onSnapshot(s=>{tasks=s.docs.map(d=>({id:d.id,...d.data()}));render()});
+  setInterval(()=>{if(!document.hidden&&me)db.refresh()},5000);
+  try{const u=await api("GET","/api/me");me={id:u.id,name:u.name};isAdmin=u.role==="admin";tab=isAdmin?"today":"mine";await db.refresh()}catch(e){}
+  render();
+})();
+</script></body></html>
