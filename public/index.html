@@ -81,6 +81,16 @@ button.ic{padding:1px 6px;font-size:11px;line-height:1.4;margin:0 1px;border-rad
 .exp{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
 #printArea{display:none}
 @media print{body>*:not(#printArea){display:none!important}#printArea{display:block;color:#000;background:#fff;padding:12px}#printArea table{min-width:0;width:100%}#printArea td,#printArea th{border:1px solid #999;color:#000;font-size:11px;padding:4px}#printArea th{background:#eee}}
+.dsh{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:12px}
+.dcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.dc{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:10px 12px}
+.sd{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px;vertical-align:middle}
+.sd.g{background:#2e9e4f}.sd.y{background:#e0a800}.sd.r{background:#d9534f}
+.sb{display:flex;height:8px;border-radius:4px;overflow:hidden;background:color-mix(in srgb,var(--mu) 18%,transparent);margin:8px 0 5px}
+.sb i{display:block}.sb .d{background:#2e9e4f}.sb .o{background:#8A96A8}.sb .l{background:#d9534f}
+.chart{display:flex;align-items:flex-end;gap:8px;height:130px;padding-top:8px}
+.chart>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}
+.chart .bar{width:100%;max-width:34px;background:var(--ac);border-radius:4px 4px 0 0;min-height:2px}
 </style></head><body><div id="printArea"></div>
 <div id="app">Loading…</div>
 <script>
@@ -133,13 +143,46 @@ function render(){
   if(a&&app.contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){pending=true;return}
   pending=false;
   if(!me){app.innerHTML=vLogin();return}
-  const tabs=isAdmin?[["today","Today"],["update","Add update"],["projects","Projects"],["tasks","Tasks"],["developers","Developers"],["weekly","Weekly summary"],["account","Account"]]:[["mine","My projects"],["mytasks","My tasks"],["account","Account"]];
+  const tabs=isAdmin?[["today","Dashboard"],["update","Add update"],["projects","Projects"],["tasks","Tasks"],["developers","Developers"],["weekly","Weekly summary"],["account","Account"]]:[["mine","My projects"],["mytasks","My tasks"],["account","Account"]];
   app.innerHTML=`<div class="top"><div><h1>SWA Project Manager</h1><div class="mu">${esc(me.name)} · ${isAdmin?"Admin":"Developer"} · ${today()}</div></div><div class="row"><button data-act="theme" title="Switch light / dark">${themeLabel()}</button><button data-act="logout">Sign out</button></div></div>
   <div class="tabs">${tabs.map(([k,l])=>`<button data-act="tab" data-k="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>
-  ${tab==="today"?vToday():tab==="projects"?vProjects():tab==="tasks"?vTasks():tab==="update"?vAdminUpdate():tab==="mytasks"?vMyTasks():tab==="developers"?vDevs():tab==="weekly"?vWeekly():tab==="account"?vAccount():vMine()}`;
+  ${tab==="today"?vDash():tab==="projects"?vProjects():tab==="tasks"?vTasks():tab==="update"?vAdminUpdate():tab==="mytasks"?vMyTasks():tab==="developers"?vDevs():tab==="weekly"?vWeekly():tab==="account"?vAccount():vMine()}`;
 }
 document.addEventListener("focusout",()=>setTimeout(()=>{if(pending)render()},300));
 
+function vDash(){
+  const T=today(),dv=devs(),open=t=>t.status!=="Done",od=t=>open(t)&&!!t.due&&t.due<T;
+  const upToday=u=>updates.some(x=>x.userId===u&&x.date===T);
+  const rows=dv.map(d=>{
+    const mine=tasks.filter(t=>t.assignee===d.id),op=mine.filter(open);
+    const done=mine.length-op.length,late=op.filter(od).length,ontime=op.length-late;
+    const dueT=op.filter(t=>t.due===T).length,nod=op.filter(t=>!t.due).length,up=upToday(d.id);
+    const c=late?"r":(dueT||nod||(op.length&&!up))?"y":"g";
+    return{d,total:mine.length,done,late,ontime,dueT,nod,up,c};
+  }).sort((a,b)=>"ryg".indexOf(a.c)-"ryg".indexOf(b.c)||a.d.name.localeCompare(b.d.name));
+  const all=tasks,doneN=all.filter(t=>!open(t)).length,odN=all.filter(od).length,penN=all.length-doneN;
+  const upN=rows.filter(r=>r.up).length;
+  const tile=(n,l,c)=>`<div class="tile ${c||""}"><div class="tn">${n}</div><div class="tl">${l}</div></div>`;
+  const cards=rows.map(r=>{const t=r.total||1,lb={r:"Overdue",y:"Needs a look",g:"On track"}[r.c];
+    return`<div class="dc"><div><span class="sd ${r.c}"></span><b>${esc(r.d.name)}</b></div><div class="mu">${lb} · ${r.up?"updated today":"no update today"}</div>
+    <div class="sb"><i class="d" style="width:${r.done/t*100}%"></i><i class="o" style="width:${r.ontime/t*100}%"></i><i class="l" style="width:${r.late/t*100}%"></i></div>
+    <div class="mu">${r.done} done · ${r.ontime} on time · ${r.late} overdue</div></div>`}).join("")||'<div class="mu">No developers yet.</div>';
+  const days=[...Array(7)].map((_,i)=>{const x=new Date();x.setDate(x.getDate()-(6-i));return iso(x)});
+  const cnt=days.map(d=>all.filter(t=>t.doneOn===d).length),mx=Math.max(1,...cnt);
+  const chart=days.map((d,i)=>`<div title="${cnt[i]} done on ${d}"><span class="mu">${cnt[i]}</span><div class="bar" style="height:${cnt[i]/mx*90}px"></div><span class="mu">${new Date(d+"T00:00").toLocaleDateString(undefined,{weekday:"short"})}</span></div>`).join("");
+  const late=all.filter(od).sort((a,b)=>a.due.localeCompare(b.due)).map(t=>{
+    const n=Math.round((new Date(T+"T00:00")-new Date(t.due+"T00:00"))/864e5);
+    return`<tr><td>${esc(nm(t.assignee))}</td><td>${esc(t.title)}</td><td>${esc(pname(t.projectId))}</td><td>${esc(t.due)}</td><td><span class="fl bad">${n} day${n===1?"":"s"} late</span></td></tr>`}).join("");
+  const grps=GROUPS.map(g=>{const ps=projects.filter(p=>grp(p)===g);
+    return`<tr><td><b>${g}</b></td><td>${ps.length}</td><td>${ps.filter(p=>stOf(p)==="Released").length}</td><td>${ps.filter(p=>flag(p)[0]==="OVERDUE").length}</td></tr>`}).join("");
+  return`<div class="tiles">${tile(all.length,"Total tasks")}${tile(doneN,"Done","ok")}${tile(penN,"Pending")}${tile(odN,"Overdue",odN?"bad":"")}${tile(upN+" / "+dv.length,"Developers updated today")}</div>
+  <h3 style="margin:14px 0 8px">Developers</h3><div class="dcards" style="margin-bottom:12px">${cards}</div>
+  <div class="dsh"><div class="card"><b>Tasks completed, last 7 days</b><div class="chart">${chart}</div></div>
+  <div class="card"><b>Projects by group</b><div class="scroll" style="margin-top:8px"><table style="min-width:0"><tr><th>Group</th><th>Projects</th><th>Released</th><th>Late</th></tr>${grps}</table></div></div></div>
+  <div class="card"><b>Needs attention: overdue tasks</b><div class="scroll" style="margin-top:8px"><table><tr><th>Developer</th><th>Task</th><th>Project</th><th>Due</th><th>Late by</th></tr>${late||'<tr><td colspan="5">Nothing overdue.</td></tr>'}</table></div></div>
+  <div class="mu" style="margin-bottom:12px">Status rule: red = at least one overdue task. Yellow = none overdue, but work due today, open work with no due date, or open work and no update today. Green = on track.</div>
+  <details class="card"><summary>Project updates today</summary><div style="margin-top:8px">${vToday()}</div></details>`;
+}
 function vToday(){
   const rows=projects.slice().sort(byOrder).map(p=>{
     const l=lastUp(p.id),ud=l&&l.date===today();
