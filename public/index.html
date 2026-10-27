@@ -365,8 +365,27 @@ function vMyTasks(){
   const rows=list.filter(dateOk).map(t=>`<tr><td><b>${esc(pname(t.projectId))}</b></td><td>${esc(t.title)}<div>${imgs(t)}</div>${prs(t)}</td><td>${t.createdByRole==="admin"?"Assigned by admin":"Added by you"}</td><td>${dt(t.due)}</td><td>${psel(t)}</td><td>${tsel(t)}</td><td><input data-t="note" data-id="${t.id}" value="${esc(t.note)}" placeholder="Add a note"></td><td><button data-act="edit" data-id="${t.id}">Edit</button> ${t.createdByRole==="developer"?`<button data-act="deltask" data-id="${t.id}" class="${delId===t.id?"pri":""}">${delId===t.id?"Confirm delete":"Delete"}</button>`:""}</td></tr>`).join("");
   const form=mp.length?`<div class="grid" style="margin-top:6px"><label>Project<select id="mp">${mp.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></label><label>Task<input id="mt"></label><label>Status<select id="ms">${TS.map(s=>`<option ${s==="Done"?"selected":""}>${s}</option>`).join("")}</select></label><label>Date<input id="md" type="date" value="${today()}"></label><label>Priority<select id="mpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="mn"></label><label>Images (optional, up to 3)<input id="mi" type="file" accept="image/*" multiple></label></div><div class="row" style="margin-top:8px"><button class="pri" data-act="addmine">Add task</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div>`:'<div class="mu" style="margin-top:6px">No projects are assigned to you yet.</div>';
   return`${editPanel(true)}<div class="card"><b>Add a task (what you did or will do)</b>${form}</div>
-  ${exportBar("mine",list)}${dfBar(list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Source</th><th>Due / date</th><th>Priority</th><th>Status</th><th>Note</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet. Tasks your admin assigns appear here.</td></tr>'}</table></div>`;
-}
+const C=[["all","All"],["today","Today"],["week","This week"],["upcoming","Upcoming"],["overdue","Overdue"],["todo","To Do"],["nodate","No due date"],["done","Done"]];
+  const dfOpts = C.map(([k,l])=>`<option value="${k}" ${df===k?"selected":""}>${l}</option>`).join("");
+  const pfOpts = ["","High","Medium","Low"].map(k=>`<option value="${k}" ${pf===k?"selected":""}>${k||"All"}</option>`).join("");
+
+  return`${editPanel(true)}<div class="card"><b>Add a task (what you did or will do)</b>${form}</div>
+  <div class="row" style="margin-bottom:12px; align-items:flex-end;">
+    <label style="display:inline">Timeline <select data-filter="df">${dfOpts}</select></label>
+    <label style="display:inline">Priority <select data-filter="pf">${pfOpts}</select></label>
+    <div style="display:flex; gap:6px; align-items:center;">
+      <span class="mu">Due:</span>
+      <input type="date" data-dr="from" value="${esc(dfrom)}" style="width:110px">
+      <span class="mu">to</span>
+      <input type="date" data-dr="to" value="${esc(dto)}" style="width:110px">
+      <button data-act="dfclear" style="margin-left:4px;">Clear</button>
+    </div>
+    <div style="margin-left:auto; display:flex; gap:6px;">
+      <button class="pri" data-act="exp" data-k="csv">Export CSV</button>
+      <button class="pri" data-act="exp" data-k="pdf">PDF</button>
+    </div>
+  </div>
+  ${exportBar("mine",list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Source</th><th>Due / date</th><th>Priority</th><th>Status</th><th>Note</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet. Tasks your admin assigns appear here.</td></tr>'}</table></div>`;}
 app.addEventListener("change",async e=>{
   const k=e.target.dataset.tf;if(k){tf[k]=e.target.value;e.target.blur();render();return}
   const t=e.target.dataset.t,id=e.target.dataset.id;if(!t)return;
