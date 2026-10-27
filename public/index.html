@@ -320,8 +320,9 @@ function exportPdf(rows,title){
 function exportBar(scope,list){
   exportRows=list.filter(dateOk);
   exportTitle=scope==="mine"?"My tasks":(tf.d?nm(tf.d):"All developers")+(tf.p?" - "+pname(tf.p):"");
-  return ""; // മുകളിലേക്ക് മാറ്റിയതിനാൽ ഇവിടെ നിന്നും ബട്ടണുകൾ ഒഴിവാക്കി
+  return ""; 
 }
+
 function vTasks(){
   const list=tasks.filter(t=>(!tf.p||t.projectId===tf.p)&&(!tf.d||t.assignee===tf.d)&&(tsub==="all"||(tsub==="dev")===(t.createdByRole==="developer"))).sort((a,b)=>porder(a.projectId)-porder(b.projectId)||tcmp(a,b));
   const rows=list.filter(dateOk).map(t=>`<tr><td><b>${esc(pname(t.projectId))}</b></td><td>${esc(t.title)}${t.note?`<div class="mu">${esc(t.note)}</div>`:""}<div>${imgs(t)}</div>${prs(t)}</td><td>${esc(nm(t.assignee))}</td><td>${t.createdByRole==="admin"?"Admin":"Developer"}</td><td><input type="date" data-t="due" data-id="${t.id}" value="${esc(t.due)}"></td><td>${psel(t)}</td><td>${tsel(t)}</td><td><button data-act="edit" data-id="${t.id}">Edit</button> <button data-act="deltask" data-id="${t.id}" class="${delId===t.id?"pri":""}">${delId===t.id?"Confirm delete":"Delete"}</button></td></tr>`).join("");
@@ -331,12 +332,11 @@ function vTasks(){
   const dfOpts = C.map(([k,l])=>`<option value="${k}" ${df===k?"selected":""}>${l}</option>`).join("");
   const pfOpts = ["","High","Medium","Low"].map(k=>`<option value="${k}" ${pf===k?"selected":""}>${k||"All"}</option>`).join("");
 
-  return`${editPanel(false)}<div class="tabs">${[["all","All Tasks"],["admin","Assigned by Admin"],["dev","Logged by Developers"]].map(([k,l])=>`<button data-act="tsub" data-k="${k}" class="${tsub===k?"on":""}">${l}</button>`).join("")}</div>${tsub==="dev"?"":`<div class="card"><b>Assign a task</b><div class="grid" style="margin-top:6px">
+  return `${editPanel(false)}<div class="tabs">${[["all","All Tasks"],["admin","Assigned by Admin"],["dev","Logged by Developers"]].map(([k,l])=>`<button data-act="tsub" data-k="${k}" class="${tsub===k?"on":""}">${l}</button>`).join("")}</div>${tsub==="dev"?"":`<div class="card"><b>Assign a task</b><div class="grid" style="margin-top:6px">
   <label>Project<select id="tp"><option value="">Select…</option>${opts(po)}</select></label>
   <label>Developer<select id="tw"><option value="">Select…</option>${opts(dv)}</select></label>
   <label>Task<input id="tt"></label><label>Due date<input id="td" type="date"></label><label>Priority<select id="tpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="tn"></label><label>Images (optional, up to 3)<input id="ti" type="file" accept="image/*" multiple></label></div>
   <div class="row" style="margin-top:8px"><button class="pri" data-act="addtask">Assign task</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div></div>`}
-  
   <div class="row" style="margin-bottom:12px; align-items:flex-end;">
     <label style="display:inline">Project <select data-tf="p"><option value="">All</option>${opts(po,tf.p)}</select></label>
     <label style="display:inline">Developer <select data-tf="d"><option value="">All</option>${opts(dv,tf.d)}</select></label>
@@ -356,6 +356,7 @@ function vTasks(){
   </div>
   ${exportBar("admin",list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Developer</th><th>Added by</th><th>Due</th><th>Priority</th><th>Status</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet.</td></tr>'}</table></div>`;
 }
+
 function vMyTasks(){
   const mp=projects.filter(p=>p.assignee===me.id).sort(byOrder),list=tasks.filter(t=>t.assignee===me.id).sort(tcmp);
   const rows=list.filter(dateOk).map(t=>`<tr><td><b>${esc(pname(t.projectId))}</b></td><td>${esc(t.title)}<div>${imgs(t)}</div>${prs(t)}</td><td>${t.createdByRole==="admin"?"Assigned by admin":"Added by you"}</td><td>${dt(t.due)}</td><td>${psel(t)}</td><td>${tsel(t)}</td><td><input data-t="note" data-id="${t.id}" value="${esc(t.note)}" placeholder="Add a note"></td><td><button data-act="edit" data-id="${t.id}">Edit</button> ${t.createdByRole==="developer"?`<button data-act="deltask" data-id="${t.id}" class="${delId===t.id?"pri":""}">${delId===t.id?"Confirm delete":"Delete"}</button>`:""}</td></tr>`).join("");
@@ -365,7 +366,7 @@ function vMyTasks(){
   const dfOpts = C.map(([k,l])=>`<option value="${k}" ${df===k?"selected":""}>${l}</option>`).join("");
   const pfOpts = ["","High","Medium","Low"].map(k=>`<option value="${k}" ${pf===k?"selected":""}>${k||"All"}</option>`).join("");
 
-  return`${editPanel(true)}<div class="card"><b>Add a task (what you did or will do)</b>${form}</div>
+  return `${editPanel(true)}<div class="card"><b>Add a task (what you did or will do)</b>${form}</div>
   <div class="row" style="margin-bottom:12px; align-items:flex-end;">
     <label style="display:inline">Timeline <select data-filter="df">${dfOpts}</select></label>
     <label style="display:inline">Priority <select data-filter="pf">${pfOpts}</select></label>
