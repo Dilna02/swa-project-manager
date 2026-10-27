@@ -729,7 +729,7 @@ app.addEventListener("click",async e=>{
     if(!pid||!title){alert("Choose a project and enter the task.");return}
     const images=await upFiles($("#mi"));
     await db.collection("tasks").add({projectId:pid,title,assignee:me.id,images,createdBy:me.id,createdByRole:"developer",status:st,priority:$("#mpr").value,due:$("#md").value,note:$("#mn").value.trim(),createdOn:today(),doneOn:st==="Done"?today():"",updatedTs:Date.now()});note="Task added";render()}
-  else if(a==="deltask"){if(delId!==id){delId=id;render();return}delId=null;await db.doc("tasks/"+id).delete();toast("Task deleted")}
+  else if(a==="delproj"){if(delId!==id){delId=id;render();return}delId=null;await db.doc("projects/"+id).delete();toast("Project deleted")}
   else if(a==="adddev"){
     const r=await api("POST","/api/users",{name:$("#dn").value.trim(),username:$("#du").value.trim(),password:$("#dp").value});
     await db.refresh();note=r.login?"Created login: "+r.id:"Added (no login): "+$("#dn").value.trim();render();
