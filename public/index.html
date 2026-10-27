@@ -320,7 +320,7 @@ function exportPdf(rows,title){
 function exportBar(scope,list){
   exportRows=list.filter(dateOk);
   exportTitle=scope==="mine"?"My tasks":(tf.d?nm(tf.d):"All developers")+(tf.p?" - "+pname(tf.p):"");
-  return`<div class="exp"><button class="pri" data-act="exp" data-k="csv">Export spreadsheet (CSV)</button><button class="pri" data-act="exp" data-k="pdf">Save as PDF</button><span class="mu">${exportRows.length} task(s) in this view · ${esc(exportTitle)}</span></div>`;
+  return ""; // മുകളിലേക്ക് മാറ്റിയതിനാൽ ഇവിടെ നിന്നും ബട്ടണുകൾ ഒഴിവാക്കി
 }
 function vTasks(){
   const list=tasks.filter(t=>(!tf.p||t.projectId===tf.p)&&(!tf.d||t.assignee===tf.d)&&(tsub==="all"||(tsub==="dev")===(t.createdByRole==="developer"))).sort((a,b)=>porder(a.projectId)-porder(b.projectId)||tcmp(a,b));
