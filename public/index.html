@@ -331,8 +331,34 @@ function vTasks(){
   <label>Developer<select id="tw"><option value="">Select…</option>${opts(dv)}</select></label>
   <label>Task<input id="tt"></label><label>Due date<input id="td" type="date"></label><label>Priority<select id="tpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="tn"></label><label>Images (optional, up to 3)<input id="ti" type="file" accept="image/*" multiple></label></div>
   <div class="row" style="margin-top:8px"><button class="pri" data-act="addtask">Assign task</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div></div>`}
-  <div class="row" style="margin-bottom:8px"><label style="display:inline">Project <select data-tf="p"><option value="">All</option>${opts(po,tf.p)}</select></label><label style="display:inline">Developer <select data-tf="d"><option value="">All</option>${opts(dv,tf.d)}</select></label></div>
-  ${exportBar("admin",list)}${dfBar(list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Developer</th><th>Added by</th><th>Due</th><th>Priority</th><th>Status</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet.</td></tr>'}</table></div>`;
+ const C=[["all","All"],["today","Today"],["week","This week"],["upcoming","Upcoming"],["overdue","Overdue"],["todo","To Do"],["nodate","No due date"],["done","Done"]];
+  const dfOpts = C.map(([k,l])=>`<option value="${k}" ${df===k?"selected":""}>${l}</option>`).join("");
+  const pfOpts = ["","High","Medium","Low"].map(k=>`<option value="${k}" ${pf===k?"selected":""}>${k||"All"}</option>`).join("");
+  
+  return`${editPanel(false)}<div class="tabs">${[["all","All Tasks"],["admin","Assigned by Admin"],["dev","Logged by Developers"]].map(([k,l])=>`<button data-act="tsub" data-k="${k}" class="${tsub===k?"on":""}">${l}</button>`).join("")}</div>${tsub==="dev"?"":`<div class="card"><b>Assign a task</b><div class="grid" style="margin-top:6px">
+  <label>Project<select id="tp"><option value="">Select…</option>${opts(po)}</select></label>
+  <label>Developer<select id="tw"><option value="">Select…</option>${opts(dv)}</select></label>
+  <label>Task<input id="tt"></label><label>Due date<input id="td" type="date"></label><label>Priority<select id="tpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="tn"></label><label>Images (optional, up to 3)<input id="ti" type="file" accept="image/*" multiple></label></div>
+  <div class="row" style="margin-top:8px"><button class="pri" data-act="addtask">Assign task</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div></div>`}
+  
+  <div class="row" style="margin-bottom:12px; align-items:flex-end;">
+    <label style="display:inline">Project <select data-tf="p"><option value="">All</option>${opts(po,tf.p)}</select></label>
+    <label style="display:inline">Developer <select data-tf="d"><option value="">All</option>${opts(dv,tf.d)}</select></label>
+    <label style="display:inline">Timeline <select data-filter="df">${dfOpts}</select></label>
+    <label style="display:inline">Priority <select data-filter="pf">${pfOpts}</select></label>
+    <div style="display:flex; gap:6px; align-items:center;">
+      <span class="mu">Due:</span>
+      <input type="date" data-dr="from" value="${esc(dfrom)}" style="width:110px">
+      <span class="mu">to</span>
+      <input type="date" data-dr="to" value="${esc(dto)}" style="width:110px">
+      <button data-act="dfclear" style="margin-left:4px;">Clear</button>
+    </div>
+    <div style="margin-left:auto; display:flex; gap:6px;">
+      <button class="pri" data-act="exp" data-k="csv">Export CSV</button>
+      <button class="pri" data-act="exp" data-k="pdf">PDF</button>
+    </div>
+  </div>
+  ${exportBar("admin",list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Developer</th><th>Added by</th><th>Due</th><th>Priority</th><th>Status</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet.</td></tr>'}</table></div>`;
 }
 function vMyTasks(){
   const mp=projects.filter(p=>p.assignee===me.id).sort(byOrder),list=tasks.filter(t=>t.assignee===me.id).sort(tcmp);
