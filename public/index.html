@@ -326,15 +326,11 @@ function vTasks(){
   const list=tasks.filter(t=>(!tf.p||t.projectId===tf.p)&&(!tf.d||t.assignee===tf.d)&&(tsub==="all"||(tsub==="dev")===(t.createdByRole==="developer"))).sort((a,b)=>porder(a.projectId)-porder(b.projectId)||tcmp(a,b));
   const rows=list.filter(dateOk).map(t=>`<tr><td><b>${esc(pname(t.projectId))}</b></td><td>${esc(t.title)}${t.note?`<div class="mu">${esc(t.note)}</div>`:""}<div>${imgs(t)}</div>${prs(t)}</td><td>${esc(nm(t.assignee))}</td><td>${t.createdByRole==="admin"?"Admin":"Developer"}</td><td><input type="date" data-t="due" data-id="${t.id}" value="${esc(t.due)}"></td><td>${psel(t)}</td><td>${tsel(t)}</td><td><button data-act="edit" data-id="${t.id}">Edit</button> <button data-act="deltask" data-id="${t.id}" class="${delId===t.id?"pri":""}">${delId===t.id?"Confirm delete":"Delete"}</button></td></tr>`).join("");
   const po=projects.slice().sort(byOrder).map(p=>[p.id,p.name]),dv=devs().map(d=>[d.id,d.name]);
-  return`${editPanel(false)}<div class="tabs">${[["all","All Tasks"],["admin","Assigned by Admin"],["dev","Logged by Developers"]].map(([k,l])=>`<button data-act="tsub" data-k="${k}" class="${tsub===k?"on":""}">${l}</button>`).join("")}</div>${tsub==="dev"?"":`<div class="card"><b>Assign a task</b><div class="grid" style="margin-top:6px">
-  <label>Project<select id="tp"><option value="">Select…</option>${opts(po)}</select></label>
-  <label>Developer<select id="tw"><option value="">Select…</option>${opts(dv)}</select></label>
-  <label>Task<input id="tt"></label><label>Due date<input id="td" type="date"></label><label>Priority<select id="tpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="tn"></label><label>Images (optional, up to 3)<input id="ti" type="file" accept="image/*" multiple></label></div>
-  <div class="row" style="margin-top:8px"><button class="pri" data-act="addtask">Assign task</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div></div>`}
- const C=[["all","All"],["today","Today"],["week","This week"],["upcoming","Upcoming"],["overdue","Overdue"],["todo","To Do"],["nodate","No due date"],["done","Done"]];
+
+  const C=[["all","All"],["today","Today"],["week","This week"],["upcoming","Upcoming"],["overdue","Overdue"],["todo","To Do"],["nodate","No due date"],["done","Done"]];
   const dfOpts = C.map(([k,l])=>`<option value="${k}" ${df===k?"selected":""}>${l}</option>`).join("");
   const pfOpts = ["","High","Medium","Low"].map(k=>`<option value="${k}" ${pf===k?"selected":""}>${k||"All"}</option>`).join("");
-  
+
   return`${editPanel(false)}<div class="tabs">${[["all","All Tasks"],["admin","Assigned by Admin"],["dev","Logged by Developers"]].map(([k,l])=>`<button data-act="tsub" data-k="${k}" class="${tsub===k?"on":""}">${l}</button>`).join("")}</div>${tsub==="dev"?"":`<div class="card"><b>Assign a task</b><div class="grid" style="margin-top:6px">
   <label>Project<select id="tp"><option value="">Select…</option>${opts(po)}</select></label>
   <label>Developer<select id="tw"><option value="">Select…</option>${opts(dv)}</select></label>
