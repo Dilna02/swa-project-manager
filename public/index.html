@@ -226,10 +226,11 @@ function vProjects(){
   <td><input class="dt" type="date" data-f="actual" data-id="${p.id}" value="${esc(p.actual)}"></td>
   <td class="why">${pWhy(p)}</td>
   <td class="why">${pRem(p)}</td>
-  <td class="mu">${(p.dateLog||[]).length}</td></tr>`).join("");
+  <td class="mu">${(p.dateLog||[]).length}</td>
+  <td><button data-act="delproj" data-id="${p.id}" class="btn-sm ${delId===p.id?"pri":""}">${delId===p.id?"Confirm":"Delete"}</button></td></tr>`).join("");
   const tabs=`<div class="tabs">${GROUPS.map(g=>`<button data-act="ptab" data-k="${g}" class="${pgroup===g?"on":""}">${g} (${projects.filter(p=>grp(p)===g).length})</button>`).join("")}</div>`;
   return tabs+`<div class="card"><div class="row"><b>Add project</b></div><div class="row" style="margin-top:8px"><input id="np" placeholder="Project name"><label style="display:inline-flex;align-items:center;gap:6px">Committed <input id="nd" type="date"></label><button class="pri" data-act="add">Add</button></div></div>
-  <div class="scroll"><table class="pt">${sub.length?"":'<tr><td colspan="11" class="mu">No projects in this group yet. Add one below, or change a project\'s group.</td></tr>'}<tr><th></th><th>Project</th><th>Group</th><th>Developer</th><th>Status</th><th>Baseline</th><th>Committed</th><th>Actual</th><th>Why pending</th><th>Remaining tasks</th><th>Changes</th></tr>${rows}</table></div>
+  <div class="scroll"><table class="pt">${sub.length?"":'<tr><td colspan="12" class="mu">No projects in this group yet. Add one below, or change a project\'s group.</td></tr>'}<tr><th></th><th>Project</th><th>Group</th><th>Developer</th><th>Status</th><th>Baseline</th><th>Committed</th><th>Actual</th><th>Why pending</th><th>Remaining tasks</th><th>Changes</th><th>Action</th></tr>${rows}</table></div>
   <div class="mu" style="margin-top:8px">Drag \u283f or use \u25b2 \u25bc to reorder. The order also applies to the Today and Weekly tabs. Baseline never changes; every committed-date change is counted.</div>`;
 }
 function vDevs(){
