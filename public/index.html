@@ -81,6 +81,16 @@ button.ic{padding:1px 6px;font-size:11px;line-height:1.4;margin:0 1px;border-rad
 .exp{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
 #printArea{display:none}
 @media print{body>*:not(#printArea){display:none!important}#printArea{display:block;color:#000;background:#fff;padding:12px}#printArea table{min-width:0;width:100%}#printArea td,#printArea th{border:1px solid #999;color:#000;font-size:11px;padding:4px}#printArea th{background:#eee}}
+.dsh{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:12px}
+.dcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.dc{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:10px 12px}
+.sd{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px;vertical-align:middle}
+.sd.g{background:#2e9e4f}.sd.y{background:#e0a800}.sd.r{background:#d9534f}
+.sb{display:flex;height:8px;border-radius:4px;overflow:hidden;background:color-mix(in srgb,var(--mu) 18%,transparent);margin:8px 0 5px}
+.sb i{display:block}.sb .d{background:#2e9e4f}.sb .o{background:#8A96A8}.sb .l{background:#d9534f}
+.chart{display:flex;align-items:flex-end;gap:8px;height:130px;padding-top:8px}
+.chart>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}
+.chart .bar{width:100%;max-width:34px;background:var(--ac);border-radius:4px 4px 0 0;min-height:2px}
 </style></head><body><div id="printArea"></div>
 <div id="app">Loading…</div>
 <script>
@@ -89,7 +99,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const today=()=>iso(new Date());
 const ST=["Not Started","In Development","Ready for QA","QA In Progress","Bug Fixing","Blocked / On Hold","Released"];
-let db,me=null,isAdmin=false,projects=[],updates=[],users=[],tasks=[],tf={p:"",d:""},tsub="all",tab="",assigning=null,pending=false,loginMsg="",note="";
+let db,me=null,isAdmin=false,projects=[],updates=[],users=[],tasks=[],meetings=[],tf={p:"",d:""},tsub="all",tab="",assigning=null,pending=false,loginMsg="",note="";
 const byOrder=(a,b)=>(a.order??1e9)-(b.order??1e9)||a.name.localeCompare(b.name);
 const devs=()=>users.filter(u=>u.role==="developer");
 function nm(id){if(!id)return"Not assigned";const u=users.find(x=>x.id===id);return u?u.name:"Removed user"}
@@ -133,13 +143,47 @@ function render(){
   if(a&&app.contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){pending=true;return}
   pending=false;
   if(!me){app.innerHTML=vLogin();return}
-  const tabs=isAdmin?[["today","Today"],["update","Add update"],["projects","Projects"],["tasks","Tasks"],["developers","Developers"],["weekly","Weekly summary"],["account","Account"]]:[["mine","My projects"],["mytasks","My tasks"],["account","Account"]];
+  const tabs=isAdmin?[["today","Dashboard"],["update","Add update"],["projects","Projects"],["tasks","Tasks"],["developers","Developers"],["meetings","Meetings"],["weekly","Weekly summary"],["reports","Reports"],["account","Account"]]:[["mine","My projects"],["mytasks","My tasks"],["meetings","Meetings"],["account","Account"]];
+  
   app.innerHTML=`<div class="top"><div><h1>SWA Project Manager</h1><div class="mu">${esc(me.name)} · ${isAdmin?"Admin":"Developer"} · ${today()}</div></div><div class="row"><button data-act="theme" title="Switch light / dark">${themeLabel()}</button><button data-act="logout">Sign out</button></div></div>
   <div class="tabs">${tabs.map(([k,l])=>`<button data-act="tab" data-k="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>
-  ${tab==="today"?vToday():tab==="projects"?vProjects():tab==="tasks"?vTasks():tab==="update"?vAdminUpdate():tab==="mytasks"?vMyTasks():tab==="developers"?vDevs():tab==="weekly"?vWeekly():tab==="account"?vAccount():vMine()}`;
+  ${tab==="today"?vDash():tab==="projects"?vProjects():tab==="tasks"?vTasks():tab==="update"?vAdminUpdate():tab==="mytasks"?vMyTasks():tab==="developers"?vDevs():tab==="meetings"?vMeetings():tab==="weekly"?vWeekly():tab==="reports"?vReports():tab==="account"?vAccount():vMine()}`;
 }
 document.addEventListener("focusout",()=>setTimeout(()=>{if(pending)render()},300));
 
+function vDash(){
+  const T=today(),dv=devs(),open=t=>t.status!=="Done",od=t=>open(t)&&!!t.due&&t.due<T;
+  const upToday=u=>updates.some(x=>x.userId===u&&x.date===T);
+  const rows=dv.map(d=>{
+    const mine=tasks.filter(t=>t.assignee===d.id),op=mine.filter(open);
+    const done=mine.length-op.length,late=op.filter(od).length,ontime=op.length-late;
+    const dueT=op.filter(t=>t.due===T).length,nod=op.filter(t=>!t.due).length,up=upToday(d.id);
+    const c=late?"r":(dueT||nod||(op.length&&!up))?"y":"g";
+    return{d,total:mine.length,done,late,ontime,dueT,nod,up,c};
+  }).sort((a,b)=>"ryg".indexOf(a.c)-"ryg".indexOf(b.c)||a.d.name.localeCompare(b.d.name));
+  const all=tasks,doneN=all.filter(t=>!open(t)).length,odN=all.filter(od).length,penN=all.length-doneN;
+  const upN=rows.filter(r=>r.up).length;
+  const tile=(n,l,c)=>`<div class="tile ${c||""}"><div class="tn">${n}</div><div class="tl">${l}</div></div>`;
+  const cards=rows.map(r=>{const t=r.total||1,lb={r:"Overdue",y:"Needs a look",g:"On track"}[r.c];
+    return`<div class="dc"><div><span class="sd ${r.c}"></span><b>${esc(r.d.name)}</b></div><div class="mu">${lb} · ${r.up?"updated today":"no update today"}</div>
+    <div class="sb"><i class="d" style="width:${r.done/t*100}%"></i><i class="o" style="width:${r.ontime/t*100}%"></i><i class="l" style="width:${r.late/t*100}%"></i></div>
+    <div class="mu">${r.done} done · ${r.ontime} on time · ${r.late} overdue</div></div>`}).join("")||'<div class="mu">No developers yet.</div>';
+  const days=[...Array(7)].map((_,i)=>{const x=new Date();x.setDate(x.getDate()-(6-i));return iso(x)});
+  const cnt=days.map(d=>all.filter(t=>t.doneOn===d).length),mx=Math.max(1,...cnt);
+  const chart=days.map((d,i)=>`<div title="${cnt[i]} done on ${d}"><span class="mu">${cnt[i]}</span><div class="bar" style="height:${cnt[i]/mx*90}px"></div><span class="mu">${new Date(d+"T00:00").toLocaleDateString(undefined,{weekday:"short"})}</span></div>`).join("");
+  const late=all.filter(od).sort((a,b)=>a.due.localeCompare(b.due)).map(t=>{
+    const n=Math.round((new Date(T+"T00:00")-new Date(t.due+"T00:00"))/864e5);
+    return`<tr><td>${esc(nm(t.assignee))}</td><td>${esc(t.title)}</td><td>${esc(pname(t.projectId))}</td><td>${esc(t.due)}</td><td><span class="fl bad">${n} day${n===1?"":"s"} late</span></td></tr>`}).join("");
+  const grps=GROUPS.map(g=>{const ps=projects.filter(p=>grp(p)===g);
+    return`<tr><td><b>${g}</b></td><td>${ps.length}</td><td>${ps.filter(p=>stOf(p)==="Released").length}</td><td>${ps.filter(p=>flag(p)[0]==="OVERDUE").length}</td></tr>`}).join("");
+  return`<div class="tiles">${tile(all.length,"Total tasks")}${tile(doneN,"Done","ok")}${tile(penN,"Pending")}${tile(odN,"Overdue",odN?"bad":"")}${tile(upN+" / "+dv.length,"Developers updated today")}</div>
+  <h3 style="margin:14px 0 8px">Developers</h3><div class="dcards" style="margin-bottom:12px">${cards}</div>
+  <div class="dsh"><div class="card"><b>Tasks completed, last 7 days</b><div class="chart">${chart}</div></div>
+  <div class="card"><b>Projects by group</b><div class="scroll" style="margin-top:8px"><table style="min-width:0"><tr><th>Group</th><th>Projects</th><th>Released</th><th>Late</th></tr>${grps}</table></div></div></div>
+  <div class="card"><b>Needs attention: overdue tasks</b><div class="scroll" style="margin-top:8px"><table><tr><th>Developer</th><th>Task</th><th>Project</th><th>Due</th><th>Late by</th></tr>${late||'<tr><td colspan="5">Nothing overdue.</td></tr>'}</table></div></div>
+  <div class="mu" style="margin-bottom:12px">Status rule: red = at least one overdue task. Yellow = none overdue, but work due today, open work with no due date, or open work and no update today. Green = on track.</div>
+  <details class="card"><summary>Project updates today</summary><div style="margin-top:8px">${vToday()}</div></details>`;
+}
 function vToday(){
   const rows=projects.slice().sort(byOrder).map(p=>{
     const l=lastUp(p.id),ud=l&&l.date===today();
@@ -183,10 +227,11 @@ function vProjects(){
   <td><input class="dt" type="date" data-f="actual" data-id="${p.id}" value="${esc(p.actual)}"></td>
   <td class="why">${pWhy(p)}</td>
   <td class="why">${pRem(p)}</td>
-  <td class="mu">${(p.dateLog||[]).length}</td></tr>`).join("");
+  <td class="mu">${(p.dateLog||[]).length}</td>
+  <td><div style="display:flex;gap:4px;flex-direction:column;"><button data-act="editproj" data-id="${p.id}" class="btn-sm">Edit</button><button data-act="delproj" data-id="${p.id}" class="btn-sm ${delId==p.id?"pri":""}">${delId==p.id?"Confirm":"Delete"}</button></div></td></tr>`).join("");
   const tabs=`<div class="tabs">${GROUPS.map(g=>`<button data-act="ptab" data-k="${g}" class="${pgroup===g?"on":""}">${g} (${projects.filter(p=>grp(p)===g).length})</button>`).join("")}</div>`;
-  return tabs+`<div class="card"><div class="row"><b>Add project</b></div><div class="row" style="margin-top:8px"><input id="np" placeholder="Project name"><label style="display:inline-flex;align-items:center;gap:6px">Committed <input id="nd" type="date"></label><button class="pri" data-act="add">Add</button></div></div>
-  <div class="scroll"><table class="pt">${sub.length?"":'<tr><td colspan="11" class="mu">No projects in this group yet. Add one below, or change a project\'s group.</td></tr>'}<tr><th></th><th>Project</th><th>Group</th><th>Developer</th><th>Status</th><th>Baseline</th><th>Committed</th><th>Actual</th><th>Why pending</th><th>Remaining tasks</th><th>Changes</th></tr>${rows}</table></div>
+  return editProjPanel() + tabs + `<div class="card"><div class="row"><b>Add project</b></div><div class="row" style="margin-top:8px"><input id="np" placeholder="Project name"><label style="display:inline-flex;align-items:center;gap:6px">Committed <input id="nd" type="date"></label><button class="pri" data-act="add">Add</button></div></div>
+  <div class="scroll"><table class="pt">${sub.length?"":'<tr><td colspan="12" class="mu">No projects in this group yet. Add one below, or change a project\'s group.</td></tr>'}<tr><th></th><th>Project</th><th>Group</th><th>Developer</th><th>Status</th><th>Baseline</th><th>Committed</th><th>Actual</th><th>Why pending</th><th>Remaining tasks</th><th>Changes</th><th>Action</th></tr>${rows}</table></div>
   <div class="mu" style="margin-top:8px">Drag \u283f or use \u25b2 \u25bc to reorder. The order also applies to the Today and Weekly tabs. Baseline never changes; every committed-date change is counted.</div>`;
 }
 function vDevs(){
@@ -225,8 +270,10 @@ function dfBar(list){
   <div class="row" style="margin-bottom:8px"><span class="mu">Priority:</span>${["","High","Medium","Low"].map(k=>`<button data-act="pf" data-k="${k}" class="${pf===k?"on":""}">${k||"All"} (${list.filter(t=>!k||(t.priority||"Medium")===k).length})</button>`).join("")}</div>
   <div class="row" style="margin-bottom:10px"><label style="display:inline">Due from <input type="date" data-dr="from" value="${esc(dfrom)}"></label><label style="display:inline">to <input type="date" data-dr="to" value="${esc(dto)}"></label><button data-act="dfclear">Clear filters</button></div>`;
 }
-app.addEventListener("change",e=>{const k=e.target.dataset.dr;if(!k)return;if(k==="from")dfrom=e.target.value;else dto=e.target.value;e.target.blur();render()});
-const su=i=>/^https?:\/\//.test(i)?i:"/api/blob/"+i;
+app.addEventListener("change",e=>{
+  const flt=e.target.dataset.filter;if(flt){if(flt==="df")df=e.target.value;else pf=e.target.value;e.target.blur();render();return}
+  const k=e.target.dataset.dr;if(!k)return;if(k==="from")dfrom=e.target.value;else dto=e.target.value;e.target.blur();render()
+});const su=i=>/^https?:\/\//.test(i)?i:"/api/blob/"+i;
 const imgs=t=>(t.images||[]).map(i=>`<img class="th" src="${esc(su(i))}" data-act="img" data-src="${esc(su(i))}" alt="attachment">`).join("");
 async function upFiles(inp){
   const files=[...((inp&&inp.files)||[])].filter(f=>f.type.startsWith("image/")).slice(0,3),ids=[];
@@ -240,8 +287,18 @@ const GROUPS=["SWA","Octopus","Others"];
 let pgroup="SWA";
 const allP=()=>projects,allT=()=>tasks;
 function grp(p){if(GROUPS.includes(p.group))return p.group;const n=String(p.name||"").toLowerCase();if(/octopus/.test(n))return"Octopus";if(/swa/.test(n))return"SWA";return"Others"}
-let exportRows=[],exportTitle="",editId=null;
+let exportRows=[],exportTitle="",editId=null,editProjId=null;
 const fsel=(id,lb,arr,val,dis)=>`<label>${lb}<select id="${id}" ${dis?"disabled":""}>${arr.map(x=>`<option ${x===val?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`;
+
+function editProjPanel(){
+  const p=editProjId&&projects.find(x=>x.id===editProjId);
+  if(!p)return"";
+  return`<div class="card" style="border-color:var(--ac)"><b>Edit Project</b><div class="grid" style="margin-top:8px">
+    <label>Project Name<input id="ep_name" value="${esc(p.name)}"></label>
+    <label>Planned Developer (If unassigned)<input id="ep_dev" value="${esc(p.devLabel||"")}"></label>
+    <label>Baseline Date<input id="ep_base" type="date" value="${esc(p.baseline||"")}"></label>
+  </div><div class="row" style="margin-top:10px"><button class="pri" data-act="ep_save" data-id="${p.id}">Save changes</button><button data-act="ep_cancel">Cancel</button></div></div>`;
+}
 function editPanel(devView){
   const t=editId&&tasks.find(x=>x.id===editId);
   if(!t)return"";
@@ -276,31 +333,205 @@ function exportPdf(rows,title){
 function exportBar(scope,list){
   exportRows=list.filter(dateOk);
   exportTitle=scope==="mine"?"My tasks":(tf.d?nm(tf.d):"All developers")+(tf.p?" - "+pname(tf.p):"");
-  return`<div class="exp"><button class="pri" data-act="exp" data-k="csv">Export spreadsheet (CSV)</button><button class="pri" data-act="exp" data-k="pdf">Save as PDF</button><span class="mu">${exportRows.length} task(s) in this view · ${esc(exportTitle)}</span></div>`;
+  return ""; 
+}
+let repType = "weekly", repStart = today(), repEnd = today();
+
+function setRepDates(type) {
+  const d = new Date();
+  if (type === "weekly") {
+    const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const start = new Date(d.setDate(diff));
+    repStart = iso(start);
+    repEnd = iso(new Date(start.setDate(start.getDate() + 6)));
+  } else if (type === "biweekly") {
+    const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const end = new Date(d.setDate(diff + 6));
+    repEnd = iso(end);
+    repStart = iso(new Date(end.setDate(end.getDate() - 13)));
+  } else if (type === "monthly") {
+    repStart = iso(new Date(d.getFullYear(), d.getMonth(), 1));
+    repEnd = iso(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+  }
+}
+
+app.addEventListener("click", e => {
+  const b = e.target.closest("[data-rep]");
+  if (!b) return;
+  repType = b.dataset.rep;
+  setRepDates(repType);
+  render();
+});
+
+app.addEventListener("change", e => {
+  if (e.target.id === "rs") { repStart = e.target.value; render(); }
+  if (e.target.id === "re") { repEnd = e.target.value; render(); }
+});
+
+function printReport(title) {
+  const pa = document.getElementById("printArea");
+  const content = document.getElementById("reportContent").innerHTML;
+  pa.innerHTML = `<div style="padding:20px; font-family:sans-serif;"><h2>${title}</h2><div style="color:#555; margin-bottom:20px;">Generated: ${today()} | Period: ${repStart} to ${repEnd}</div>${content}</div>`;
+  window.print();
+}
+
+function vReports() {
+  if (!repStart || !repEnd) setRepDates("weekly");
+  
+  // Filtering Logic
+  const inPeriod = d => d >= repStart && d <= repEnd;
+  const repTasks = tasks.filter(t => inPeriod(t.createdOn) || inPeriod(t.doneOn) || (t.status !== "Done" && t.createdOn <= repEnd));
+  
+  const created = repTasks.filter(t => inPeriod(t.createdOn));
+  const completed = repTasks.filter(t => t.status === "Done" && inPeriod(t.doneOn));
+  const pending = repTasks.filter(t => t.status !== "Done" && t.createdOn <= repEnd);
+  const overdue = pending.filter(t => t.due && t.due < repEnd);
+  
+  // Developer Breakdown
+  const devStats = devs().map(d => {
+    const dTasks = repTasks.filter(t => t.assignee === d.id);
+    const dDone = dTasks.filter(t => t.status === "Done" && inPeriod(t.doneOn)).length;
+    const dPend = dTasks.filter(t => t.status !== "Done" && t.createdOn <= repEnd).length;
+    return `<tr><td>${esc(d.name)}</td><td>${dTasks.length}</td><td>${dDone}</td><td>${dPend}</td></tr>`;
+  }).join("");
+
+  // Period Updates & Blockers
+  const repUpdates = updates.filter(u => inPeriod(u.date));
+  const blockers = repUpdates.filter(u => u.blocker).map(u => `<li><b>${esc(pname(u.projectId))}:</b> ${esc(u.blocker)} (${esc(nm(u.userId))})</li>`).join("") || "<li>No blockers reported in this period.</li>";
+
+  const rTitle = repType.charAt(0).toUpperCase() + repType.slice(1) + " Executive Summary";
+
+  return `
+  <div class="tabs">
+    <button data-rep="weekly" class="${repType==="weekly"?"on":""}">Weekly</button>
+    <button data-rep="biweekly" class="${repType==="biweekly"?"on":""}">Biweekly</button>
+    <button data-rep="monthly" class="${repType==="monthly"?"on":""}">Monthly</button>
+  </div>
+  
+  <div class="card row" style="justify-content:space-between;">
+    <div>
+      <label style="display:inline">Start: <input type="date" id="rs" value="${repStart}"></label>
+      <label style="display:inline; margin-left:10px;">End: <input type="date" id="re" value="${repEnd}"></label>
+    </div>
+    <button class="pri" onclick="printReport('${rTitle}')">Export PDF / Print</button>
+  </div>
+
+  <div id="reportContent" class="card" style="background:#fff;">
+    <h2 style="margin-top:0; color:var(--ac);">${rTitle}</h2>
+    <div class="grid" style="margin-bottom:20px;">
+      <div style="background:var(--bg); padding:12px; border-radius:8px;"><b>${created.length}</b> New Tasks</div>
+      <div style="background:var(--ok); padding:12px; border-radius:8px;"><b>${completed.length}</b> Completed</div>
+      <div style="background:var(--warn); padding:12px; border-radius:8px;"><b>${pending.length}</b> In Progress</div>
+      <div style="background:var(--bad); padding:12px; border-radius:8px; color:#fff;"><b>${overdue.length}</b> Overdue</div>
+    </div>
+
+    <h3>Developer Breakdown</h3>
+    <table style="width:100%; border-collapse:collapse; margin-bottom:20px;" border="1">
+      <tr style="background:#eee;"><th>Developer</th><th>Total Touched</th><th>Completed</th><th>Pending at Period End</th></tr>
+      ${devStats}
+    </table>
+
+    <h3>Active Blockers & Delays Logged</h3>
+    <ul style="margin:0 0 20px 20px; padding:0;">${blockers}</ul>
+
+    <h3>Task Log (${repStart} to ${repEnd})</h3>
+    <table style="width:100%; border-collapse:collapse; font-size:12px;" border="1">
+      <tr style="background:#eee;"><th>Task</th><th>Project</th><th>Status</th><th>Created</th><th>Done On</th></tr>
+      ${repTasks.map(t => `<tr><td>${esc(t.title)}</td><td>${esc(pname(t.projectId))}</td><td>${esc(t.status)}</td><td>${esc(t.createdOn)}</td><td>${esc(t.doneOn||"—")}</td></tr>`).join("")}
+    </table>
+  </div>`;
 }
 function vTasks(){
   const list=tasks.filter(t=>(!tf.p||t.projectId===tf.p)&&(!tf.d||t.assignee===tf.d)&&(tsub==="all"||(tsub==="dev")===(t.createdByRole==="developer"))).sort((a,b)=>porder(a.projectId)-porder(b.projectId)||tcmp(a,b));
   const rows=list.filter(dateOk).map(t=>`<tr><td><b>${esc(pname(t.projectId))}</b></td><td>${esc(t.title)}${t.note?`<div class="mu">${esc(t.note)}</div>`:""}<div>${imgs(t)}</div>${prs(t)}</td><td>${esc(nm(t.assignee))}</td><td>${t.createdByRole==="admin"?"Admin":"Developer"}</td><td><input type="date" data-t="due" data-id="${t.id}" value="${esc(t.due)}"></td><td>${psel(t)}</td><td>${tsel(t)}</td><td><button data-act="edit" data-id="${t.id}">Edit</button> <button data-act="deltask" data-id="${t.id}" class="${delId===t.id?"pri":""}">${delId===t.id?"Confirm delete":"Delete"}</button></td></tr>`).join("");
   const po=projects.slice().sort(byOrder).map(p=>[p.id,p.name]),dv=devs().map(d=>[d.id,d.name]);
-  return`${editPanel(false)}<div class="tabs">${[["all","All Tasks"],["admin","Assigned by Admin"],["dev","Logged by Developers"]].map(([k,l])=>`<button data-act="tsub" data-k="${k}" class="${tsub===k?"on":""}">${l}</button>`).join("")}</div>${tsub==="dev"?"":`<div class="card"><b>Assign a task</b><div class="grid" style="margin-top:6px">
+
+  const C=[["all","All"],["today","Today"],["week","This week"],["upcoming","Upcoming"],["overdue","Overdue"],["todo","To Do"],["nodate","No due date"],["done","Done"]];
+  const dfOpts = C.map(([k,l])=>`<option value="${k}" ${df===k?"selected":""}>${l}</option>`).join("");
+  const pfOpts = ["","High","Medium","Low"].map(k=>`<option value="${k}" ${pf===k?"selected":""}>${k||"All"}</option>`).join("");
+
+  return `${editPanel(false)}<div class="tabs">${[["all","All Tasks"],["admin","Assigned by Admin"],["dev","Logged by Developers"]].map(([k,l])=>`<button data-act="tsub" data-k="${k}" class="${tsub===k?"on":""}">${l}</button>`).join("")}</div>${tsub==="dev"?"":`<div class="card"><b>Assign a task</b><div class="grid" style="margin-top:6px">
   <label>Project<select id="tp"><option value="">Select…</option>${opts(po)}</select></label>
   <label>Developer<select id="tw"><option value="">Select…</option>${opts(dv)}</select></label>
   <label>Task<input id="tt"></label><label>Due date<input id="td" type="date"></label><label>Priority<select id="tpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="tn"></label><label>Images (optional, up to 3)<input id="ti" type="file" accept="image/*" multiple></label></div>
   <div class="row" style="margin-top:8px"><button class="pri" data-act="addtask">Assign task</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div></div>`}
-  <div class="row" style="margin-bottom:8px"><label style="display:inline">Project <select data-tf="p"><option value="">All</option>${opts(po,tf.p)}</select></label><label style="display:inline">Developer <select data-tf="d"><option value="">All</option>${opts(dv,tf.d)}</select></label></div>
-  ${exportBar("admin",list)}${dfBar(list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Developer</th><th>Added by</th><th>Due</th><th>Priority</th><th>Status</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet.</td></tr>'}</table></div>`;
+  <div class="row" style="margin-bottom:12px; align-items:flex-end;">
+    <label style="display:inline">Project <select data-tf="p"><option value="">All</option>${opts(po,tf.p)}</select></label>
+    <label style="display:inline">Developer <select data-tf="d"><option value="">All</option>${opts(dv,tf.d)}</select></label>
+    <label style="display:inline">Timeline <select data-filter="df">${dfOpts}</select></label>
+    <label style="display:inline">Priority <select data-filter="pf">${pfOpts}</select></label>
+    <div style="display:flex; gap:6px; align-items:center;">
+      <span class="mu">Due:</span>
+      <input type="date" data-dr="from" value="${esc(dfrom)}" style="width:110px">
+      <span class="mu">to</span>
+      <input type="date" data-dr="to" value="${esc(dto)}" style="width:110px">
+      <button data-act="dfclear" style="margin-left:4px;">Clear</button>
+    </div>
+    <div style="margin-left:auto; display:flex; gap:6px;">
+      <button class="pri" data-act="exp" data-k="csv">Export CSV</button>
+      <button class="pri" data-act="exp" data-k="pdf">PDF</button>
+    </div>
+  </div>
+  ${exportBar("admin",list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Developer</th><th>Added by</th><th>Due</th><th>Priority</th><th>Status</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet.</td></tr>'}</table></div>`;
+}
+function vMeetings(){
+  const po = projects.slice().sort(byOrder).map(p=>[p.id,p.name]);
+  const list = meetings.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"") || (b.createdTs||0) - (a.createdTs||0));
+  const rows = list.map(m=>`<tr>
+    <td><b>${esc(pname(m.projectId))}</b></td>
+    <td style="white-space:nowrap">${dt(m.date)}</td>
+    <td style="white-space:pre-wrap">${esc(m.mom)}</td>
+    <td><button data-act="delmeeting" data-id="${m.id}" class="btn-sm ${delId===m.id?"pri":""}">${delId===m.id?"Confirm":"Delete"}</button></td>
+  </tr>`).join("");
+
+  return `<div class="card"><b>Add Meeting Details</b><div class="grid" style="margin-top:6px">
+  <label>Project<select id="m_proj"><option value="">Select Project…</option>${opts(po)}</select></label>
+  <label>Date<input id="m_date" type="date" value="${today()}"></label>
+  </div>
+  <label style="margin-top:8px;">Minutes of Meeting (MOM)<textarea id="m_mom" rows="4" placeholder="Type meeting notes here..."></textarea></label>
+  <div class="row" style="margin-top:8px"><button class="pri" data-act="addmeeting">Save Meeting</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div></div>
+  <div class="scroll"><table><tr><th>Project</th><th>Date</th><th>Minutes of Meeting (MOM)</th><th>Action</th></tr>${rows||'<tr><td colspan="4" class="mu">No meetings added yet.</td></tr>'}</table></div>`;
 }
 function vMyTasks(){
   const mp=projects.filter(p=>p.assignee===me.id).sort(byOrder),list=tasks.filter(t=>t.assignee===me.id).sort(tcmp);
   const rows=list.filter(dateOk).map(t=>`<tr><td><b>${esc(pname(t.projectId))}</b></td><td>${esc(t.title)}<div>${imgs(t)}</div>${prs(t)}</td><td>${t.createdByRole==="admin"?"Assigned by admin":"Added by you"}</td><td>${dt(t.due)}</td><td>${psel(t)}</td><td>${tsel(t)}</td><td><input data-t="note" data-id="${t.id}" value="${esc(t.note)}" placeholder="Add a note"></td><td><button data-act="edit" data-id="${t.id}">Edit</button> ${t.createdByRole==="developer"?`<button data-act="deltask" data-id="${t.id}" class="${delId===t.id?"pri":""}">${delId===t.id?"Confirm delete":"Delete"}</button>`:""}</td></tr>`).join("");
   const form=mp.length?`<div class="grid" style="margin-top:6px"><label>Project<select id="mp">${mp.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></label><label>Task<input id="mt"></label><label>Status<select id="ms">${TS.map(s=>`<option ${s==="Done"?"selected":""}>${s}</option>`).join("")}</select></label><label>Date<input id="md" type="date" value="${today()}"></label><label>Priority<select id="mpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="mn"></label><label>Images (optional, up to 3)<input id="mi" type="file" accept="image/*" multiple></label></div><div class="row" style="margin-top:8px"><button class="pri" data-act="addmine">Add task</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div>`:'<div class="mu" style="margin-top:6px">No projects are assigned to you yet.</div>';
-  return`${editPanel(true)}<div class="card"><b>Add a task (what you did or will do)</b>${form}</div>
-  ${exportBar("mine",list)}${dfBar(list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Source</th><th>Due / date</th><th>Priority</th><th>Status</th><th>Note</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet. Tasks your admin assigns appear here.</td></tr>'}</table></div>`;
+
+  const C=[["all","All"],["today","Today"],["week","This week"],["upcoming","Upcoming"],["overdue","Overdue"],["todo","To Do"],["nodate","No due date"],["done","Done"]];
+  const dfOpts = C.map(([k,l])=>`<option value="${k}" ${df===k?"selected":""}>${l}</option>`).join("");
+  const pfOpts = ["","High","Medium","Low"].map(k=>`<option value="${k}" ${pf===k?"selected":""}>${k||"All"}</option>`).join("");
+
+  return `${editPanel(true)}<div class="card"><b>Add a task (what you did or will do)</b>${form}</div>
+  <div class="row" style="margin-bottom:12px; align-items:flex-end;">
+    <label style="display:inline">Timeline <select data-filter="df">${dfOpts}</select></label>
+    <label style="display:inline">Priority <select data-filter="pf">${pfOpts}</select></label>
+    <div style="display:flex; gap:6px; align-items:center;">
+      <span class="mu">Due:</span>
+      <input type="date" data-dr="from" value="${esc(dfrom)}" style="width:110px">
+      <span class="mu">to</span>
+      <input type="date" data-dr="to" value="${esc(dto)}" style="width:110px">
+      <button data-act="dfclear" style="margin-left:4px;">Clear</button>
+    </div>
+    <div style="margin-left:auto; display:flex; gap:6px;">
+      <button class="pri" data-act="exp" data-k="csv">Export CSV</button>
+      <button class="pri" data-act="exp" data-k="pdf">PDF</button>
+    </div>
+  </div>
+  ${exportBar("mine",list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Source</th><th>Due / date</th><th>Priority</th><th>Status</th><th>Note</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet. Tasks your admin assigns appear here.</td></tr>'}</table></div>`;
 }
 app.addEventListener("change",async e=>{
   const k=e.target.dataset.tf;if(k){tf[k]=e.target.value;e.target.blur();render();return}
   const t=e.target.dataset.t,id=e.target.dataset.id;if(!t)return;
-  const v=e.target.value,u={[t]:v,updatedTs:Date.now()};if(t==="status")u.doneOn=v==="Done"?today():"";
+  const v=e.target.value;
+  const taskObj = tasks.find(x => x.id === id);
+  const u={[t]:v,updatedTs:Date.now()};
+  
+  if(t==="status"){
+    u.doneOn=v==="Done"?today():"";
+    const hist = taskObj.statusHistory || [];
+    u.statusHistory = [...hist, {status: v, ts: Date.now(), date: today()}];
+  }
+  
   try{await db.doc("tasks/"+id).update(u)}catch(err){alert("Could not save: "+(err.message||err.code||err))}
 });
 function vAccount(){return`<div class="card" style="max-width:380px"><b>Change my password</b><label style="margin-top:8px">New password<input id="np1" type="password"></label><div class="row" style="margin-top:8px"><button class="pri" data-act="chpw">Save password</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div></div>`}
@@ -685,7 +916,25 @@ app.addEventListener("click",async e=>{
     if(!pid||!title){alert("Choose a project and enter the task.");return}
     const images=await upFiles($("#mi"));
     await db.collection("tasks").add({projectId:pid,title,assignee:me.id,images,createdBy:me.id,createdByRole:"developer",status:st,priority:$("#mpr").value,due:$("#md").value,note:$("#mn").value.trim(),createdOn:today(),doneOn:st==="Done"?today():"",updatedTs:Date.now()});note="Task added";render()}
-  else if(a==="deltask"){if(delId!==id){delId=id;render();return}delId=null;await db.doc("tasks/"+id).delete();toast("Task deleted")}
+  else if(a==="delproj"){if(delId!==id){delId=id;render();return}delId=null;await db.doc("projects/"+id).delete();toast("Project deleted")}
+  else if(a==="addmeeting"){
+    const pid=$("#m_proj").value, date=$("#m_date").value, mom=$("#m_mom").value.trim();
+    if(!pid || !mom){alert("Select a project and enter MOM.");return}
+    await db.collection("meetings").add({projectId:pid, date:date, mom:mom, createdBy:me.id, createdTs:Date.now()});
+    note="Meeting added"; render();
+  }
+  else if(a==="delmeeting"){
+    if(delId!==id){delId=id;render();return}
+    delId=null; await db.doc("meetings/"+id).delete(); toast("Meeting deleted"); render();
+  }
+  else if(a==="editproj"){editProjId=id;render();window.scrollTo(0,0)}
+  else if(a==="ep_cancel"){editProjId=null;render()}
+  else if(a==="ep_save"){
+    const n=$("#ep_name").value.trim(), dl=$("#ep_dev").value.trim(), bs=$("#ep_base").value;
+    if(!n){alert("Project name is required.");return;}
+    await db.doc("projects/"+id).update({name:n, devLabel:dl, baseline:bs});
+    editProjId=null; note="Project updated"; render();
+  }
   else if(a==="adddev"){
     const r=await api("POST","/api/users",{name:$("#dn").value.trim(),username:$("#du").value.trim(),password:$("#dp").value});
     await db.refresh();note=r.login?"Created login: "+r.id:"Added (no login): "+$("#dn").value.trim();render();
@@ -717,7 +966,7 @@ async function api(method,url,body){
   if(!r.ok)throw new Error((j&&j.error)||("Request failed ("+r.status+")"));
   return j;
 }
-const COLS=["users","projects","updates","tasks"];
+const COLS=["users","projects","updates","tasks","meetings"];
 const subs={},lastSig={};
 async function sync(c){
   try{
@@ -757,6 +1006,7 @@ function makeDb(){
   db.collection("projects").onSnapshot(s=>{projects=s.docs.map(d=>({id:d.id,...d.data()}));render()});
   db.collection("updates").onSnapshot(s=>{updates=s.docs.map(d=>({id:d.id,...d.data()}));render()});
   db.collection("tasks").onSnapshot(s=>{tasks=s.docs.map(d=>({id:d.id,...d.data()}));render()});
+  db.collection("meetings").onSnapshot(s=>{meetings=s.docs.map(d=>({id:d.id,...d.data()}));render()});
   setInterval(()=>{if(!document.hidden&&me)db.refresh()},5000);
   try{const u=await api("GET","/api/me");me={id:u.id,name:u.name};isAdmin=u.role==="admin";tab=isAdmin?"today":"mine";await db.refresh()}catch(e){}
   render();
