@@ -143,11 +143,10 @@ function render(){
   if(a&&app.contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){pending=true;return}
   pending=false;
   if(!me){app.innerHTML=vLogin();return}
-  const tabs=isAdmin?[["today","Dashboard"],["update","Add update"],["projects","Projects"],["tasks","Tasks"],["developers","Developers"],["meetings","Meetings"],["weekly","Weekly summary"],["reports","Reports"],["account","Account"]]:[["mine","My projects"],["mytasks","My tasks"],["meetings","Meetings"],["account","Account"]];
-  
+  const tabs=isAdmin?[["today","Today"],["update","Add update"],["projects","Projects"],["tasks","Tasks"],["developers","Developers"],["weekly","Weekly summary"],["account","Account"]]:[["mine","My projects"],["mytasks","My tasks"],["account","Account"]];
   app.innerHTML=`<div class="top"><div><h1>SWA Project Manager</h1><div class="mu">${esc(me.name)} · ${isAdmin?"Admin":"Developer"} · ${today()}</div></div><div class="row"><button data-act="theme" title="Switch light / dark">${themeLabel()}</button><button data-act="logout">Sign out</button></div></div>
   <div class="tabs">${tabs.map(([k,l])=>`<button data-act="tab" data-k="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>
-  ${tab==="today"?vDash():tab==="projects"?vProjects():tab==="tasks"?vTasks():tab==="update"?vAdminUpdate():tab==="mytasks"?vMyTasks():tab==="developers"?vDevs():tab==="meetings"?vMeetings():tab==="weekly"?vWeekly():tab==="reports"?vReports():tab==="account"?vAccount():vMine()}`;
+  ${tab==="today"?vToday():tab==="projects"?vProjects():tab==="tasks"?vTasks():tab==="update"?vAdminUpdate():tab==="mytasks"?vMyTasks():tab==="developers"?vDevs():tab==="weekly"?vWeekly():tab==="account"?vAccount():vMine()}`;
 }
 document.addEventListener("focusout",()=>setTimeout(()=>{if(pending)render()},300));
 
@@ -455,43 +454,10 @@ function vTasks(){
   <label>Developer<select id="tw"><option value="">Select…</option>${opts(dv)}</select></label>
   <label>Task<input id="tt"></label><label>Due date<input id="td" type="date"></label><label>Priority<select id="tpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="tn"></label><label>Images (optional, up to 3)<input id="ti" type="file" accept="image/*" multiple></label></div>
   <div class="row" style="margin-top:8px"><button class="pri" data-act="addtask">Assign task</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div></div>`}
-  <div class="row" style="margin-bottom:12px; align-items:flex-end;">
-    <label style="display:inline">Project <select data-tf="p"><option value="">All</option>${opts(po,tf.p)}</select></label>
-    <label style="display:inline">Developer <select data-tf="d"><option value="">All</option>${opts(dv,tf.d)}</select></label>
-    <label style="display:inline">Timeline <select data-filter="df">${dfOpts}</select></label>
-    <label style="display:inline">Priority <select data-filter="pf">${pfOpts}</select></label>
-    <div style="display:flex; gap:6px; align-items:center;">
-      <span class="mu">Due:</span>
-      <input type="date" data-dr="from" value="${esc(dfrom)}" style="width:110px">
-      <span class="mu">to</span>
-      <input type="date" data-dr="to" value="${esc(dto)}" style="width:110px">
-      <button data-act="dfclear" style="margin-left:4px;">Clear</button>
-    </div>
-    <div style="margin-left:auto; display:flex; gap:6px;">
-      <button class="pri" data-act="exp" data-k="csv">Export CSV</button>
-      <button class="pri" data-act="exp" data-k="pdf">PDF</button>
-    </div>
-  </div>
-  ${exportBar("admin",list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Developer</th><th>Added by</th><th>Due</th><th>Priority</th><th>Status</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet.</td></tr>'}</table></div>`;
+  <div class="row" style="margin-bottom:8px"><label style="display:inline">Project <select data-tf="p"><option value="">All</option>${opts(po,tf.p)}</select></label><label style="display:inline">Developer <select data-tf="d"><option value="">All</option>${opts(dv,tf.d)}</select></label></div>
+  ${exportBar("admin",list)}${dfBar(list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Developer</th><th>Added by</th><th>Due</th><th>Priority</th><th>Status</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet.</td></tr>'}</table></div>`;
 }
-function vMeetings(){
-  const po = projects.slice().sort(byOrder).map(p=>[p.id,p.name]);
-  const list = meetings.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"") || (b.createdTs||0) - (a.createdTs||0));
-  const rows = list.map(m=>`<tr>
-    <td><b>${esc(pname(m.projectId))}</b></td>
-    <td style="white-space:nowrap">${dt(m.date)}</td>
-    <td style="white-space:pre-wrap">${esc(m.mom)}</td>
-    <td><button data-act="delmeeting" data-id="${m.id}" class="btn-sm ${delId===m.id?"pri":""}">${delId===m.id?"Confirm":"Delete"}</button></td>
-  </tr>`).join("");
 
-  return `<div class="card"><b>Add Meeting Details</b><div class="grid" style="margin-top:6px">
-  <label>Project<select id="m_proj"><option value="">Select Project…</option>${opts(po)}</select></label>
-  <label>Date<input id="m_date" type="date" value="${today()}"></label>
-  </div>
-  <label style="margin-top:8px;">Minutes of Meeting (MOM)<textarea id="m_mom" rows="4" placeholder="Type meeting notes here..."></textarea></label>
-  <div class="row" style="margin-top:8px"><button class="pri" data-act="addmeeting">Save Meeting</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div></div>
-  <div class="scroll"><table><tr><th>Project</th><th>Date</th><th>Minutes of Meeting (MOM)</th><th>Action</th></tr>${rows||'<tr><td colspan="4" class="mu">No meetings added yet.</td></tr>'}</table></div>`;
-}
 function vMyTasks(){
   const mp=projects.filter(p=>p.assignee===me.id).sort(byOrder),list=tasks.filter(t=>t.assignee===me.id).sort(tcmp);
   const rows=list.filter(dateOk).map(t=>`<tr><td><b>${esc(pname(t.projectId))}</b></td><td>${esc(t.title)}<div>${imgs(t)}</div>${prs(t)}</td><td>${t.createdByRole==="admin"?"Assigned by admin":"Added by you"}</td><td>${dt(t.due)}</td><td>${psel(t)}</td><td>${tsel(t)}</td><td><input data-t="note" data-id="${t.id}" value="${esc(t.note)}" placeholder="Add a note"></td><td><button data-act="edit" data-id="${t.id}">Edit</button> ${t.createdByRole==="developer"?`<button data-act="deltask" data-id="${t.id}" class="${delId===t.id?"pri":""}">${delId===t.id?"Confirm delete":"Delete"}</button>`:""}</td></tr>`).join("");
@@ -916,25 +882,7 @@ app.addEventListener("click",async e=>{
     if(!pid||!title){alert("Choose a project and enter the task.");return}
     const images=await upFiles($("#mi"));
     await db.collection("tasks").add({projectId:pid,title,assignee:me.id,images,createdBy:me.id,createdByRole:"developer",status:st,priority:$("#mpr").value,due:$("#md").value,note:$("#mn").value.trim(),createdOn:today(),doneOn:st==="Done"?today():"",updatedTs:Date.now()});note="Task added";render()}
-  else if(a==="delproj"){if(delId!==id){delId=id;render();return}delId=null;await db.doc("projects/"+id).delete();toast("Project deleted")}
-  else if(a==="addmeeting"){
-    const pid=$("#m_proj").value, date=$("#m_date").value, mom=$("#m_mom").value.trim();
-    if(!pid || !mom){alert("Select a project and enter MOM.");return}
-    await db.collection("meetings").add({projectId:pid, date:date, mom:mom, createdBy:me.id, createdTs:Date.now()});
-    note="Meeting added"; render();
-  }
-  else if(a==="delmeeting"){
-    if(delId!==id){delId=id;render();return}
-    delId=null; await db.doc("meetings/"+id).delete(); toast("Meeting deleted"); render();
-  }
-  else if(a==="editproj"){editProjId=id;render();window.scrollTo(0,0)}
-  else if(a==="ep_cancel"){editProjId=null;render()}
-  else if(a==="ep_save"){
-    const n=$("#ep_name").value.trim(), dl=$("#ep_dev").value.trim(), bs=$("#ep_base").value;
-    if(!n){alert("Project name is required.");return;}
-    await db.doc("projects/"+id).update({name:n, devLabel:dl, baseline:bs});
-    editProjId=null; note="Project updated"; render();
-  }
+  else if(a==="deltask"){if(delId!==id){delId=id;render();return}delId=null;await db.doc("tasks/"+id).delete();toast("Task deleted")}
   else if(a==="adddev"){
     const r=await api("POST","/api/users",{name:$("#dn").value.trim(),username:$("#du").value.trim(),password:$("#dp").value});
     await db.refresh();note=r.login?"Created login: "+r.id:"Added (no login): "+$("#dn").value.trim();render();
