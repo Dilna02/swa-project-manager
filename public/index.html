@@ -58,6 +58,16 @@ tr:hover td{background:color-mix(in srgb,var(--ac) 5%,transparent)}
 .pr-High{border-left:4px solid #d9534f}.pr-Medium{border-left:4px solid #8A96A8}.pr-Low{border-left:4px solid #5cb85c}
 .rd-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:70}
 #rdrawer{display:none}
+.create-overlay{position:fixed;inset:0;z-index:90}
+.create-backdrop{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:rgba(0,0,0,.42)}
+.create-panel{position:absolute;top:0;right:0;bottom:0;width:min(560px,100%);overflow:auto;background:var(--cd);color:var(--tx);box-shadow:-8px 0 24px rgba(0,0,0,.25);padding:18px;box-sizing:border-box}
+.create-panel h2{margin-top:0}
+.create-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.create-head h2{margin:0}
+.create-panel .grid{grid-template-columns:1fr}
+.create-panel label{margin-top:8px}
+.list-toolbar{display:flex;justify-content:flex-end;align-items:center;margin:10px 0}
+.create-panel .card{padding:0;border:0;box-shadow:none;background:transparent}
 .rd-pn{position:fixed;top:0;right:0;bottom:0;width:min(860px,100%);background:var(--cd);color:var(--tx);z-index:71;display:flex;flex-direction:column;box-shadow:-8px 0 24px rgba(0,0,0,.25)}
 .rd-hd{padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .rd-msg{padding:6px 16px;font-size:12px;color:var(--mu);min-height:8px}
@@ -107,7 +117,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const today=()=>iso(new Date());
 const ST=["Not Started","In Development","Ready for QA","QA In Progress","Bug Fixing","Blocked / On Hold","Released"];
-let db,me=null,isAdmin=false,projects=[],updates=[],users=[],tasks=[],meetings=[],tf={p:"",d:""},tsub="all",tab="",assigning=null,pending=false,loginMsg="",note="",selectedProjectId=null,expandedMeetingId=null;
+let db,me=null,isAdmin=false,projects=[],updates=[],users=[],tasks=[],meetings=[],tf={p:"",d:""},tsub="all",tab="",assigning=null,pending=false,loginMsg="",note="",selectedProjectId=null,expandedMeetingId=null,createDrawerKind="",createDrawerProjectId=null;
 const byOrder=(a,b)=>(a.order??1e9)-(b.order??1e9)||a.name.localeCompare(b.name);
 const devs=()=>users.filter(u=>u.role==="developer");
 function nm(id){if(!id)return"Not assigned";const u=users.find(x=>x.id===id);return u?u.name:"Removed user"}
@@ -155,7 +165,8 @@ function render(){
   
   app.innerHTML=`<div class="top"><div><h1>SWA Project Manager</h1><div class="mu">${esc(me.name)} · ${isAdmin?"Admin":"Developer"} · ${today()}</div></div><div class="row"><button data-act="theme" title="Switch light / dark">${themeLabel()}</button><button data-act="logout">Sign out</button></div></div>
   <div class="tabs">${tabs.map(([k,l])=>`<button data-act="tab" data-k="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>
-  ${selectedProjectId?vProjectDetail():tab==="today"?vDash():tab==="projects"?vProjects():tab==="tasks"?vTasks():tab==="update"?vAdminUpdate():tab==="mytasks"?vMyTasks():tab==="developers"?vDevs():tab==="meetings"?vMeetings():tab==="weekly"?vWeekly():tab==="reports"?vReports():tab==="account"?vAccount():vMine()}`;
+  ${selectedProjectId?vProjectDetail():tab==="today"?vDash():tab==="projects"?vProjects():tab==="tasks"?vTasks():tab==="update"?vAdminUpdate():tab==="mytasks"?vMyTasks():tab==="developers"?vDevs():tab==="meetings"?vMeetings():tab==="weekly"?vWeekly():tab==="reports"?vReports():tab==="account"?vAccount():vMine()}
+  ${createDrawer()}`;
 }
 document.addEventListener("focusout",()=>setTimeout(()=>{if(pending)render()},300));
 
@@ -238,12 +249,7 @@ function vProjects(){
   <td class="mu">${(p.dateLog||[]).length}</td>
   <td><div style="display:flex;gap:4px;flex-direction:column;"><button data-act="editproj" data-id="${p.id}" class="btn-sm">Edit</button><button data-act="delproj" data-id="${p.id}" class="btn-sm ${delId==p.id?"pri":""}">${delId==p.id?"Confirm":"Delete"}</button></div></td></tr>`).join("");
   const tabs=`<div class="tabs">${GROUPS.map(g=>`<button data-act="ptab" data-k="${g}" class="${pgroup===g?"on":""}">${g} (${projects.filter(p=>grp(p)===g).length})</button>`).join("")}</div>`;
-  return editProjPanel() + tabs + `<div class="card"><b>Add project</b><div class="grid" style="margin-top:8px">
-  <label>Project name<input id="np" placeholder="Project name"></label><label>Committed date<input id="nd" type="date"></label><label>Project URL<input id="nurl" type="url" placeholder="https://"></label>
-  </div><div class="grid" style="margin-top:8px">
-  <label>Overview / Summary<textarea id="nsummary" rows="3"></textarea></label><label>Documentation (URL or notes)<textarea id="ndocumentation" rows="3"></textarea></label><label>Credentials<textarea id="ncredentials" rows="3" autocomplete="off"></textarea></label>
-  </div><label style="margin-top:8px">Test cases (up to 10 files, 10 MB each: PDF, Word, Excel, CSV, TXT, JSON, FEATURE or ZIP)<input id="nfiles" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.json,.feature,.zip"></label>
-  <div class="row" style="margin-top:8px"><button class="pri" data-act="add">Add project</button></div></div>
+  return editProjPanel() + tabs + `<div class="list-toolbar">${createTrigger("project","Create project")}</div>
   <div class="scroll"><table class="pt">${sub.length?"":'<tr><td colspan="12" class="mu">No projects in this group yet. Add one below, or change a project\'s group.</td></tr>'}<tr><th></th><th>Project</th><th>Group</th><th>Developer</th><th>Status</th><th>Baseline</th><th>Committed</th><th>Actual</th><th>Why pending</th><th>Remaining tasks</th><th>Changes</th><th>Action</th></tr>${rows}</table></div>
   <div class="mu" style="margin-top:8px">Drag \u283f or use \u25b2 \u25bc to reorder. The order also applies to the Today and Weekly tabs. Baseline never changes; every committed-date change is counted.</div>`;
 }
@@ -274,9 +280,7 @@ function vProjectDetail(){
 function vDevs(){
   const rows=devs().map(d=>`<tr><td><b>${esc(d.name)}</b></td><td>${esc(d.id)}${d.noLogin?' <span class="mu">(no login)</span>':""}</td><td>${projects.filter(p=>p.assignee===d.id).map(p=>esc(p.name)).join(", ")||"—"}</td>
   <td><div class="row"><input type="text" id="rp_${esc(d.id)}" placeholder="New password"><button data-act="reset" data-id="${esc(d.id)}">Reset</button><button data-act="remove" data-id="${esc(d.id)}" class="${delId===d.id?"pri":""}">${delId===d.id?"Confirm remove":"Remove"}</button></div></td></tr>`).join("");
-  return`<div class="card"><b>Add developer</b><div class="grid" style="margin-top:6px"><label>Full name<input id="dn"></label><label>Username (optional)<input id="du" autocapitalize="none"></label><label>Password (optional)<input id="dp" type="text"></label></div>
-  <div class="row" style="margin-top:8px"><button class="pri" data-act="adddev">Add developer</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div>
-  <div class="mu" style="margin-top:6px">Leave the password empty to add a developer by name only, with no login. You then enter their updates yourself in the Add update tab. If you add a password, they can sign in and update on their own.</div></div>
+  return`<div class="list-toolbar">${createTrigger("developer","Create developer")}</div>
   <div class="scroll"><table><tr><th>Name</th><th>Username</th><th>Assigned projects</th><th>Password / remove</th></tr>${rows||'<tr><td colspan="4">No developers yet.</td></tr>'}</table></div>`;
 }
 const TS=["To Do","In Progress","Done"];
@@ -515,11 +519,7 @@ function vTasks(){
   const dfOpts = C.map(([k,l])=>`<option value="${k}" ${df===k?"selected":""}>${l}</option>`).join("");
   const pfOpts = ["","High","Medium","Low"].map(k=>`<option value="${k}" ${pf===k?"selected":""}>${k||"All"}</option>`).join("");
 
-  return `${editPanel(false)}<div class="tabs">${[["all","All Tasks"],["admin","Assigned by Admin"],["dev","Logged by Developers"]].map(([k,l])=>`<button data-act="tsub" data-k="${k}" class="${tsub===k?"on":""}">${l}</button>`).join("")}</div>${tsub==="dev"?"":`<div class="card"><b>Assign a task</b><div class="grid" style="margin-top:6px">
-  <label>Project<select id="tp"><option value="">Select…</option>${opts(po)}</select></label>
-  <label>Developer<select id="tw"><option value="">Select…</option>${opts(dv)}</select></label>
-  <label>Task<input id="tt"></label><label>Due date<input id="td" type="date"></label><label>Priority<select id="tpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="tn"></label><label>Images (optional, up to 3)<input id="ti" type="file" accept="image/*" multiple></label></div>
-  <div class="row" style="margin-top:8px"><button class="pri" data-act="addtask">Assign task</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div></div>`}
+  return `${editPanel(false)}<div class="tabs">${[["all","All Tasks"],["admin","Assigned by Admin"],["dev","Logged by Developers"]].map(([k,l])=>`<button data-act="tsub" data-k="${k}" class="${tsub===k?"on":""}">${l}</button>`).join("")}</div>
   <div class="row" style="margin-bottom:12px; align-items:flex-end;">
     <label style="display:inline">Project <select data-tf="p"><option value="">All</option>${opts(po,tf.p)}</select></label>
     <label style="display:inline">Developer <select data-tf="d"><option value="">All</option>${opts(dv,tf.d)}</select></label>
@@ -533,6 +533,7 @@ function vTasks(){
       <button data-act="dfclear" style="margin-left:4px;">Clear</button>
     </div>
     <div style="margin-left:auto; display:flex; gap:6px;">
+      ${tsub==="dev"?"":createTrigger("task","Create task")}
       <button class="pri" data-act="exp" data-k="csv">Export CSV</button>
       <button class="pri" data-act="exp" data-k="pdf">PDF</button>
     </div>
@@ -540,7 +541,6 @@ function vTasks(){
   ${exportBar("admin",list)}<div class="scroll"><table><tr><th>Project</th><th>Task</th><th>Developer</th><th>Added by</th><th>Due</th><th>Priority</th><th>Status</th><th></th></tr>${rows||'<tr><td colspan="8">No tasks yet.</td></tr>'}</table></div>`;
 }
 function vMeetings(){
-  const po = projects.slice().sort(byOrder).map(p=>[p.id,p.name]);
   const list = meetings.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"") || (b.createdTs||0) - (a.createdTs||0));
   const rows = list.map(m=>`<tr data-meeting-row="${m.id}" style="cursor:pointer">
     <td><button data-act="meetingtoggle" data-id="${m.id}" aria-expanded="${expandedMeetingId===m.id}" style="border:0;background:transparent;padding:0;text-align:left"><span aria-hidden="true">${expandedMeetingId===m.id?"▾":"▸"}</span> <b>${esc(pname(m.projectId))}</b></button></td>
@@ -549,25 +549,18 @@ function vMeetings(){
     <td><button data-act="delmeeting" data-id="${m.id}" class="btn-sm ${delId===m.id?"pri":""}">${delId===m.id?"Confirm":"Delete"}</button></td>
   </tr>${expandedMeetingId===m.id?`<tr><td colspan="4" style="white-space:pre-wrap">${esc(m.mom||"")}</td></tr>`:""}`).join("");
 
-  return `<div class="card"><b>Add Meeting Details</b><div class="grid" style="margin-top:6px">
-  <label>Project<select id="m_proj"><option value="">Select Project…</option>${opts(po)}</select></label>
-  <label>Date<input id="m_date" type="date" value="${today()}"></label>
-  </div>
-  <label style="margin-top:8px;">Minutes of Meeting (MOM)<textarea id="m_mom" rows="4" placeholder="Type meeting notes here..."></textarea></label>
-  <div class="row" style="margin-top:8px"><button class="pri" data-act="addmeeting">Save Meeting</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div></div>
+  return `<div class="list-toolbar">${createTrigger("meeting","Create meeting")}</div>
   <div class="scroll"><table><tr><th>Project</th><th>Date</th><th>Minutes of Meeting (MOM)</th><th>Action</th></tr>${rows||'<tr><td colspan="4" class="mu">No meetings added yet.</td></tr>'}</table></div>`;
 }
 function vMyTasks(){
-  const mp=projects.filter(p=>p.assignee===me.id).sort(byOrder),list=tasks.filter(t=>t.assignee===me.id).sort(tcmp);
+  const list=tasks.filter(t=>t.assignee===me.id).sort(tcmp);
   const rows=list.filter(dateOk).map(t=>`<tr><td><b>${esc(pname(t.projectId))}</b></td><td>${esc(t.title)}<div>${imgs(t)}</div>${prs(t)}</td><td>${t.createdByRole==="admin"?"Assigned by admin":"Added by you"}</td><td>${dt(t.due)}</td><td>${psel(t)}</td><td>${tsel(t)}</td><td><input data-t="note" data-id="${t.id}" value="${esc(t.note)}" placeholder="Add a note"></td><td><button data-act="edit" data-id="${t.id}">Edit</button> ${t.createdByRole==="developer"?`<button data-act="deltask" data-id="${t.id}" class="${delId===t.id?"pri":""}">${delId===t.id?"Confirm delete":"Delete"}</button>`:""}</td></tr>`).join("");
-  const form=mp.length?`<div class="grid" style="margin-top:6px"><label>Project<select id="mp">${mp.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></label><label>Task<input id="mt"></label><label>Status<select id="ms">${TS.map(s=>`<option ${s==="Done"?"selected":""}>${s}</option>`).join("")}</select></label><label>Date<input id="md" type="date" value="${today()}"></label><label>Priority<select id="mpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="mn"></label><label>Images (optional, up to 3)<input id="mi" type="file" accept="image/*" multiple></label></div><div class="row" style="margin-top:8px"><button class="pri" data-act="addmine">Add task</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div>`:'<div class="mu" style="margin-top:6px">No projects are assigned to you yet.</div>';
 
   const C=[["all","All"],["today","Today"],["week","This week"],["upcoming","Upcoming"],["overdue","Overdue"],["todo","To Do"],["nodate","No due date"],["done","Done"]];
   const dfOpts = C.map(([k,l])=>`<option value="${k}" ${df===k?"selected":""}>${l}</option>`).join("");
   const pfOpts = ["","High","Medium","Low"].map(k=>`<option value="${k}" ${pf===k?"selected":""}>${k||"All"}</option>`).join("");
 
-  return `${editPanel(true)}<div class="card"><b>Add a task (what you did or will do)</b>${form}</div>
-  <div class="row" style="margin-bottom:12px; align-items:flex-end;">
+  return `${editPanel(true)}<div class="row" style="margin-bottom:12px; align-items:flex-end;">
     <label style="display:inline">Timeline <select data-filter="df">${dfOpts}</select></label>
     <label style="display:inline">Priority <select data-filter="pf">${pfOpts}</select></label>
     <div style="display:flex; gap:6px; align-items:center;">
@@ -578,6 +571,7 @@ function vMyTasks(){
       <button data-act="dfclear" style="margin-left:4px;">Clear</button>
     </div>
     <div style="margin-left:auto; display:flex; gap:6px;">
+      ${projects.some(p=>p.assignee===me.id)?createTrigger("task","Create task"):""}
       <button class="pri" data-act="exp" data-k="csv">Export CSV</button>
       <button class="pri" data-act="exp" data-k="pdf">PDF</button>
     </div>
@@ -618,16 +612,84 @@ function vWeekly(){
 const fd=d=>{const x=new Date(d+"T00:00:00");return x.toLocaleDateString(undefined,{day:"numeric",month:"short"})};
 function ago(ts){if(!ts)return"never";const n=Math.floor((Date.now()-ts)/864e5);return n<=0?"today":n===1?"yesterday":n+" days ago"}
 function vAdminUpdate(){
-  const po=projects.slice().sort(byOrder).map(p=>[p.id,p.name]),dv=devs().map(d=>[d.id,d.name]);
-  const f=(i,lb,ty="text")=>`<label>${lb}<input id="${i}" type="${ty}"></label>`;
-  return`<div class="card"><b>Add a daily update (what the developer told you)</b><div class="grid" style="margin-top:8px">
-  <label>Project<select id="ap"><option value="">Select…</option>${opts(po)}</select></label>
-  <label>Developer<select id="ad"><option value="">Same as the project’s developer</option>${opts(dv)}</select></label>
-  <label>Date<input id="adt" type="date" value="${today()}"></label>${f("at","Task / what happened")}
-  <label>Status<select id="as">${ST.map(s=>`<option>${s}</option>`).join("")}</select></label>
-  ${f("adv","Dev %","number")}${f("aq","QA %","number")}${f("ab","Blocker")}${f("ar","Why delayed (reason)")}${f("an","Next action")}${f("and","Corresponding date","date")}${f("af","Final date","date")}${f("am","Remark")}</div>
-  <div class="row" style="margin-top:10px"><button class="pri" data-act="adminupd">Save update</button>${note?`<span class="fl ok">${esc(note)}</span>`:""}</div>
-  <div class="mu" style="margin-top:6px">One update per project per day. Saving again for the same date replaces it.</div></div>`;
+  const rows=updates.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.ts||0)-(a.ts||0)).map(u=>`<tr>
+    <td style="white-space:nowrap">${dt(u.date)}</td><td>${esc(pname(u.projectId))}</td><td>${esc(nm(u.userId))}</td><td>${esc(u.status||"—")}</td><td>${esc(u.task||"—")}</td>
+  </tr>`).join("");
+  return`<div class="list-toolbar">${createTrigger("update","Create update")}</div>
+  <div class="scroll"><table><tr><th>Date</th><th>Project</th><th>Developer</th><th>Status</th><th>Work done</th></tr>${rows||'<tr><td colspan="5" class="mu">No updates added yet.</td></tr>'}</table></div>`;
+}
+function createTrigger(kind,label,id){
+  return`<button class="pri" data-act="createopen" data-k="${kind}"${id?` data-id="${id}"`:""}>${label}</button>`;
+}
+function createFormContent(){
+  if(createDrawerKind==="project")return`<div class="card"><div class="grid">
+    <label>Project name<input id="np" placeholder="Project name"></label><label>Committed date<input id="nd" type="date"></label><label>Project URL<input id="nurl" type="url" placeholder="https://"></label>
+  </div><div class="grid">
+    <label>Overview / Summary<textarea id="nsummary" rows="3"></textarea></label><label>Documentation (URL or notes)<textarea id="ndocumentation" rows="3"></textarea></label><label>Credentials<textarea id="ncredentials" rows="3" autocomplete="off"></textarea></label>
+  </div><label>Test cases (up to 10 files, 10 MB each: PDF, Word, Excel, CSV, TXT, JSON, FEATURE or ZIP)<input id="nfiles" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.json,.feature,.zip"></label>
+  <div class="row" style="margin-top:12px"><button class="pri" data-act="add">Create project</button></div></div>`;
+  if(createDrawerKind==="task"&&isAdmin){
+    const po=projects.slice().sort(byOrder).map(p=>[p.id,p.name]),dv=devs().map(d=>[d.id,d.name]);
+    return`<div class="card"><div class="grid">
+      <label>Project<select id="tp"><option value="">Select…</option>${opts(po)}</select></label><label>Developer<select id="tw"><option value="">Select…</option>${opts(dv)}</select></label>
+      <label>Task<input id="tt"></label><label>Due date<input id="td" type="date"></label><label>Priority<select id="tpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="tn"></label>
+      <label>Images (optional, up to 3)<input id="ti" type="file" accept="image/*" multiple></label></div>
+      <div class="row" style="margin-top:12px"><button class="pri" data-act="addtask">Create task</button></div></div>`;
+  }
+  if(createDrawerKind==="task"&&!isAdmin){
+    const assigned=projects.filter(p=>p.assignee===me.id).sort(byOrder);
+    if(!assigned.length)return`<div class="card"><div class="mu">No projects are assigned to you yet.</div></div>`;
+    return`<div class="card"><div class="grid">
+      <label>Project<select id="mp">${assigned.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></label><label>Task<input id="mt"></label>
+      <label>Status<select id="ms">${TS.map(s=>`<option ${s==="Done"?"selected":""}>${s}</option>`).join("")}</select></label><label>Date<input id="md" type="date" value="${today()}"></label>
+      <label>Priority<select id="mpr">${PR.map(s=>`<option ${s==="Medium"?"selected":""}>${s}</option>`).join("")}</select></label><label>Note (optional)<input id="mn"></label>
+      <label>Images (optional, up to 3)<input id="mi" type="file" accept="image/*" multiple></label></div>
+      <div class="row" style="margin-top:12px"><button class="pri" data-act="addmine">Create task</button></div></div>`;
+  }
+  if(createDrawerKind==="developer")return`<div class="card"><div class="grid">
+    <label>Full name<input id="dn"></label><label>Username (optional)<input id="du" autocapitalize="none"></label><label>Password (optional)<input id="dp" type="text"></label></div>
+    <div class="row" style="margin-top:12px"><button class="pri" data-act="adddev">Create developer</button></div>
+    <div class="mu" style="margin-top:8px">Leave the password empty to add a developer by name only, with no login. If you add a password, they can sign in and update on their own.</div></div>`;
+  if(createDrawerKind==="meeting"){
+    const po=projects.slice().sort(byOrder).map(p=>[p.id,p.name]);
+    return`<div class="card"><div class="grid"><label>Project<select id="m_proj"><option value="">Select Project…</option>${opts(po)}</select></label><label>Date<input id="m_date" type="date" value="${today()}"></label></div>
+      <label>Minutes of Meeting (MOM)<textarea id="m_mom" rows="8" placeholder="Type meeting notes here..."></textarea></label>
+      <div class="row" style="margin-top:12px"><button class="pri" data-act="addmeeting">Create meeting</button></div></div>`;
+  }
+  if(createDrawerKind==="update"){
+    const po=projects.slice().sort(byOrder).map(p=>[p.id,p.name]),dv=devs().map(d=>[d.id,d.name]);
+    const f=(i,lb,ty="text")=>`<label>${lb}<input id="${i}" type="${ty}"></label>`;
+    return`<div class="card"><div class="grid">
+      <label>Project<select id="ap"><option value="">Select…</option>${opts(po)}</select></label>
+      <label>Developer<select id="ad"><option value="">Same as the project’s developer</option>${opts(dv)}</select></label>
+      <label>Date<input id="adt" type="date" value="${today()}"></label>${f("at","Task / what happened")}
+      <label>Status<select id="as">${ST.map(s=>`<option>${s}</option>`).join("")}</select></label>
+      ${f("adv","Dev %","number")}${f("aq","QA %","number")}${f("ab","Blocker")}${f("ar","Why delayed (reason)")}${f("an","Next action")}${f("and","Corresponding date","date")}${f("af","Final date","date")}${f("am","Remark")}</div>
+      <div class="row" style="margin-top:12px"><button class="pri" data-act="adminupd">Create update</button></div>
+      <div class="mu" style="margin-top:8px">One update per project per day. Saving again for the same date replaces it.</div></div>`;
+  }
+  if(createDrawerKind==="mineupdate"){
+    const p=projects.find(x=>x.id===createDrawerProjectId);
+    if(!p||p.assignee!==me.id)return`<div class="card"><div class="mu">This project is not assigned to you.</div></div>`;
+    const current=updates.find(u=>u.projectId===p.id&&u.date===today())||lastUp(p.id)||{};
+    const f=(n,lb,ty="text")=>`<label>${lb}<input name="${n}" type="${ty}" value="${esc(current[n]??"")}"></label>`;
+    return`<div class="card" data-pid="${p.id}"><div class="mu" style="margin-bottom:8px">${esc(p.name)} · ${today()}</div><div class="grid">
+      ${f("task","Task (what you are working on)")}
+      <label>Status<select name="status">${ST.map(s=>`<option ${s===(current.status||p.status)?"selected":""}>${s}</option>`).join("")}</select></label>
+      ${f("dev","Dev %","number")}${f("qa","QA %","number")}${f("blocker","Blocker")}${f("reason","Why delayed (reason)")}
+      ${f("next","Next action you will deliver")}${f("nextDate","Corresponding date","date")}${f("finalDate","Final date (ready)","date")}${f("remark","Remark")}</div>
+      <div class="row" style="margin-top:12px"><button class="pri" data-act="save" data-id="${p.id}">Save today’s update</button></div></div>`;
+  }
+  return"";
+}
+function createDrawer(){
+  if(!createDrawerKind)return"";
+  const titles={project:"Create project",task:"Create task",developer:"Create developer",meeting:"Create meeting",update:"Create update",mineupdate:"Create update"};
+  const form=createFormContent();
+  if(!form)return"";
+  return`<div class="create-overlay"><button class="create-backdrop" data-act="createclose" aria-label="Close create form"></button><aside class="create-panel" role="dialog" aria-modal="true" aria-labelledby="createTitle">
+    <div class="create-head"><h2 id="createTitle">${titles[createDrawerKind]||"Create"}</h2><button data-act="createclose" aria-label="Close">Close</button></div>${form}
+  </aside></div>`;
 }
 const fmtD=s=>{if(!s)return"\u2014";const[y,m,d]=s.split("-");const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];return(+d)+" "+M[+m-1]+" "+y};
 function rOwner(p){if(p.assignee){const n=nm(p.assignee);if(n!=="Removed user")return n}return p.devLabel?p.devLabel+" (not assigned in app)":"Not assigned"}
@@ -891,18 +953,15 @@ function vMine(){
   const mine=projects.filter(p=>p.assignee===me.id);
   if(!mine.length)return`<div class="card">No projects are assigned to you yet. Ask your admin to assign them.</div>`;
   return mine.map(p=>{
-    const t=updates.find(u=>u.projectId===p.id&&u.date===today()),l=t||lastUp(p.id)||{};
-    const f=(n,lb,ty="text")=>`<label>${lb}<input name="${n}" type="${ty}" value="${esc(l[n])}"></label>`;
-    return`<div class="card" data-pid="${p.id}"><div class="row" style="justify-content:space-between"><button class="project-title" style="border:0;background:transparent;padding:0" data-act="openproj" data-id="${p.id}">${esc(p.name)}</button><span>${fl(p)} ${t?'<span class="fl ok">Updated today ✓</span>':'<span class="fl warn">Update due today</span>'}</span></div>
-    <div class="mu">Committed date: ${dt(p.committed)}</div><div class="grid" style="margin-top:8px">
-    ${f("task","Task (what you are working on)")}
-    <label>Status<select name="status">${ST.map(s=>`<option ${s===(l.status||p.status)?"selected":""}>${s}</option>`).join("")}</select></label>
-    ${f("dev","Dev %","number")}${f("qa","QA %","number")}${f("blocker","Blocker")}${f("reason","Why delayed (reason)")}
-    ${f("next","Next action you will deliver")}${f("nextDate","Corresponding date","date")}${f("finalDate","Final date (ready)","date")}${f("remark","Remark")}</div>
-    <div class="row" style="margin-top:8px"><button class="pri" data-act="save" data-id="${p.id}">Save today’s update</button><span class="mu" data-msg></span></div></div>`}).join("");
+    const t=updates.find(u=>u.projectId===p.id&&u.date===today());
+    return`<div class="card"><div class="row" style="justify-content:space-between"><button class="project-title" style="border:0;background:transparent;padding:0" data-act="openproj" data-id="${p.id}">${esc(p.name)}</button><span>${fl(p)} ${t?'<span class="fl ok">Updated today ✓</span>':'<span class="fl warn">Update due today</span>'}</span></div>
+    <div class="row" style="justify-content:space-between;margin-top:8px"><span class="mu">Committed date: ${dt(p.committed)} · ${t?"Updated today":"Update due today"}</span>${createTrigger("mineupdate","Create update",p.id)}</div></div>`}).join("");
 }
 
-app.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="lp")doLogin()});
+app.addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&e.target.id==="lp")doLogin();
+  if(e.key==="Escape"&&createDrawerKind){createDrawerKind="";createDrawerProjectId=null;render()}
+});
 let dragId=null;
 async function saveOrder(list){try{for(let i=0;i<list.length;i++){if(list[i].order!==i)await db.doc("projects/"+list[i].id).update({order:i})}}catch(err){alert("Could not save order: "+(err.message||err.code||err))}}
 app.addEventListener("dragstart",e=>{const h=e.target.closest&&e.target.closest("[data-drag]");if(!h)return;dragId=h.dataset.drag;e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",dragId)}catch(x){}});
@@ -927,8 +986,10 @@ app.addEventListener("click",async e=>{
   const a=b.dataset.act,id=b.dataset.id;note="";
   try{
   if(a==="login")await doLogin();
-  else if(a==="logout"){try{await api("POST","/api/logout")}catch(x){}me=null;isAdmin=false;db.reset();render()}
-  else if(a==="tab"){tab=b.dataset.k;assigning=null;selectedProjectId=null;editProjId=null;render()}
+  else if(a==="logout"){try{await api("POST","/api/logout")}catch(x){}me=null;isAdmin=false;createDrawerKind="";createDrawerProjectId=null;db.reset();render()}
+  else if(a==="tab"){tab=b.dataset.k;assigning=null;selectedProjectId=null;editProjId=null;createDrawerKind="";createDrawerProjectId=null;render()}
+  else if(a==="createopen"){createDrawerKind=b.dataset.k;createDrawerProjectId=b.dataset.id||null;render()}
+  else if(a==="createclose"){createDrawerKind="";createDrawerProjectId=null;render()}
   else if(a==="openproj"){selectedProjectId=id;editProjId=null;render()}
   else if(a==="projectback"){selectedProjectId=null;editProjId=null;render()}
   else if(a==="meetingtoggle"){expandedMeetingId=expandedMeetingId===id?null:id;render()}
@@ -943,6 +1004,7 @@ app.addEventListener("click",async e=>{
     if($("#nfiles").files.length>10){alert("Choose no more than 10 test-case files.");return}
     const testCases=await uploadProjectFiles($("#nfiles"));
     await db.collection("projects").add({name:n,group:pgroup,order:projects.length,devLabel:"",status:"Not Started",baseline:d,committed:d,actual:"",assignee:null,dateLog:[],createdOn:today(),projectUrl:url,summary:$("#nsummary").value.trim(),documentation:$("#ndocumentation").value.trim(),credentials:$("#ncredentials").value.trim(),testCases});
+    createDrawerKind="";createDrawerProjectId=null;render();
   }
   else if(a==="use"){const p=projects.find(x=>x.id===id),l=lastUp(id);
     await db.doc("projects/"+id).update({committed:l.finalDate,dateLog:[...(p.dateLog||[]),{on:today(),from:p.committed||"",to:l.finalDate}]})}
@@ -952,7 +1014,7 @@ app.addEventListener("click",async e=>{
     if(!uid)uid=p.assignee||"";if(!uid){alert("Choose a developer, or assign one to the project first.");return}
     const nv=i=>{const v=$("#"+i).value;return v===""?"":Number(v)},sv=i=>$("#"+i).value.trim();
     await db.doc("updates/"+pid+"_"+date).set({projectId:pid,userId:uid,date,ts:Date.now(),byAdmin:true,enteredBy:me.id,task:sv("at"),status:$("#as").value,dev:nv("adv"),qa:nv("aq"),blocker:sv("ab"),reason:sv("ar"),next:sv("an"),nextDate:$("#and").value,finalDate:$("#af").value,remark:sv("am")});
-    note="Update saved";render()}
+    note="Update saved";createDrawerKind="";createDrawerProjectId=null;render()}
   else if(a==="edit"){editId=id;render();window.scrollTo(0,0)}
   else if(a==="editcancel"){editId=null;render()}
   else if(a==="editsave"){
@@ -992,18 +1054,18 @@ app.addEventListener("click",async e=>{
     const pid=$("#tp").value,title=$("#tt").value.trim(),who=$("#tw").value;
     if(!pid||!title||!who){alert("Choose a project and a developer, and enter the task.");return}
     const images=await upFiles($("#ti"));
-    await db.collection("tasks").add({projectId:pid,title,assignee:who,images,createdBy:me.id,createdByRole:"admin",status:"To Do",priority:$("#tpr").value,due:$("#td").value,note:$("#tn").value.trim(),createdOn:today(),doneOn:"",updatedTs:Date.now()});note="Task assigned";render()}
+    await db.collection("tasks").add({projectId:pid,title,assignee:who,images,createdBy:me.id,createdByRole:"admin",status:"To Do",priority:$("#tpr").value,due:$("#td").value,note:$("#tn").value.trim(),createdOn:today(),doneOn:"",updatedTs:Date.now()});note="Task assigned";createDrawerKind="";createDrawerProjectId=null;render()}
   else if(a==="addmine"){
     const pid=$("#mp").value,title=$("#mt").value.trim(),st=$("#ms").value;
     if(!pid||!title){alert("Choose a project and enter the task.");return}
     const images=await upFiles($("#mi"));
-    await db.collection("tasks").add({projectId:pid,title,assignee:me.id,images,createdBy:me.id,createdByRole:"developer",status:st,priority:$("#mpr").value,due:$("#md").value,note:$("#mn").value.trim(),createdOn:today(),doneOn:st==="Done"?today():"",updatedTs:Date.now()});note="Task added";render()}
+    await db.collection("tasks").add({projectId:pid,title,assignee:me.id,images,createdBy:me.id,createdByRole:"developer",status:st,priority:$("#mpr").value,due:$("#md").value,note:$("#mn").value.trim(),createdOn:today(),doneOn:st==="Done"?today():"",updatedTs:Date.now()});note="Task added";createDrawerKind="";createDrawerProjectId=null;render()}
   else if(a==="delproj"){if(delId!==id){delId=id;render();return}delId=null;selectedProjectId=null;await db.doc("projects/"+id).delete();toast("Project deleted")}
   else if(a==="addmeeting"){
     const pid=$("#m_proj").value, date=$("#m_date").value, mom=$("#m_mom").value.trim();
     if(!pid || !mom){alert("Select a project and enter MOM.");return}
     await db.collection("meetings").add({projectId:pid, date:date, mom:mom, createdBy:me.id, createdTs:Date.now()});
-    note="Meeting added"; render();
+    note="Meeting added";createDrawerKind="";createDrawerProjectId=null;render();
   }
   else if(a==="delmeeting"){
     if(delId!==id){delId=id;render();return}
@@ -1026,7 +1088,7 @@ app.addEventListener("click",async e=>{
   }
   else if(a==="adddev"){
     const r=await api("POST","/api/users",{name:$("#dn").value.trim(),username:$("#du").value.trim(),password:$("#dp").value});
-    await db.refresh();note=r.login?"Created login: "+r.id:"Added (no login): "+$("#dn").value.trim();render();
+    await db.refresh();note=r.login?"Created login: "+r.id:"Added (no login): "+$("#dn").value.trim();createDrawerKind="";createDrawerProjectId=null;render();
   }
   else if(a==="reset"){const pw=$("#rp_"+id).value;if(!pw){alert("Type a new password first.");return}
     await api("POST","/api/users/"+encodeURIComponent(id)+"/password",{password:pw});note="Password reset";render()}
@@ -1037,7 +1099,8 @@ app.addEventListener("click",async e=>{
     const card=b.closest(".card"),d={projectId:id,userId:me.id,date:today(),ts:Date.now()};
     card.querySelectorAll("[name]").forEach(i=>d[i.name]=(i.type==="number"&&i.value!=="")?Number(i.value):i.value);
     await db.doc("updates/"+id+"_"+today()).set(d);
-    const m=card.querySelector("[data-msg]");if(m)m.textContent="Saved ✓";
+    if(createDrawerKind==="mineupdate"){createDrawerKind="";createDrawerProjectId=null;note="Update saved";render()}
+    else{const m=card.querySelector("[data-msg]");if(m)m.textContent="Saved ✓"}
   }}catch(err){alert("Could not save: "+(err.message||err.code||err))}
 });
 app.addEventListener("change",async e=>{
