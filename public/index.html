@@ -69,12 +69,20 @@ tr:hover td{background:color-mix(in srgb,var(--ac) 5%,transparent)}
 .pt .nw{white-space:nowrap}
 .pt .ord{white-space:nowrap;width:1%}
 .pt .pn{font-weight:600;min-width:120px}
+.pt button.pn{padding:0;border:0;background:transparent;color:var(--ac);text-align:left}
 .pt input[type=date]{width:128px;padding:4px 6px;font-size:12px}
 .pt select{padding:4px 6px;font-size:12px;max-width:150px}
 .pt .why{min-width:240px}
 .pt .ln{line-height:1.4;margin:3px 0}
 .pt details{margin-top:2px}.pt summary{font-size:12px;cursor:pointer}
 .clip{display:block;font-weight:500;white-space:normal;overflow-wrap:anywhere}
+.pt tr[data-row]{cursor:pointer}
+.project-page{max-width:980px;margin:0 auto}
+.project-page .project-title{font-size:30px;font-weight:700;letter-spacing:-.5px}
+.project-text{white-space:pre-wrap;overflow-wrap:anywhere}
+.project-files{padding-left:20px}
+.project-files li{margin:6px 0}
+.project-page .card h2{margin-top:0}
 .btn-sm{padding:2px 9px;font-size:12px;border-radius:6px;margin-top:3px}
 button.ic{padding:1px 6px;font-size:11px;line-height:1.4;margin:0 1px;border-radius:5px}
 .pt .hd{cursor:grab;color:var(--mu);margin-right:4px;font-size:15px;vertical-align:middle}
@@ -99,7 +107,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const today=()=>iso(new Date());
 const ST=["Not Started","In Development","Ready for QA","QA In Progress","Bug Fixing","Blocked / On Hold","Released"];
-let db,me=null,isAdmin=false,projects=[],updates=[],users=[],tasks=[],meetings=[],tf={p:"",d:""},tsub="all",tab="",assigning=null,pending=false,loginMsg="",note="";
+let db,me=null,isAdmin=false,projects=[],updates=[],users=[],tasks=[],meetings=[],tf={p:"",d:""},tsub="all",tab="",assigning=null,pending=false,loginMsg="",note="",selectedProjectId=null;
 const byOrder=(a,b)=>(a.order??1e9)-(b.order??1e9)||a.name.localeCompare(b.name);
 const devs=()=>users.filter(u=>u.role==="developer");
 function nm(id){if(!id)return"Not assigned";const u=users.find(x=>x.id===id);return u?u.name:"Removed user"}
@@ -147,7 +155,7 @@ function render(){
   
   app.innerHTML=`<div class="top"><div><h1>SWA Project Manager</h1><div class="mu">${esc(me.name)} · ${isAdmin?"Admin":"Developer"} · ${today()}</div></div><div class="row"><button data-act="theme" title="Switch light / dark">${themeLabel()}</button><button data-act="logout">Sign out</button></div></div>
   <div class="tabs">${tabs.map(([k,l])=>`<button data-act="tab" data-k="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>
-  ${tab==="today"?vDash():tab==="projects"?vProjects():tab==="tasks"?vTasks():tab==="update"?vAdminUpdate():tab==="mytasks"?vMyTasks():tab==="developers"?vDevs():tab==="meetings"?vMeetings():tab==="weekly"?vWeekly():tab==="reports"?vReports():tab==="account"?vAccount():vMine()}`;
+  ${selectedProjectId?vProjectDetail():tab==="today"?vDash():tab==="projects"?vProjects():tab==="tasks"?vTasks():tab==="update"?vAdminUpdate():tab==="mytasks"?vMyTasks():tab==="developers"?vDevs():tab==="meetings"?vMeetings():tab==="weekly"?vWeekly():tab==="reports"?vReports():tab==="account"?vAccount():vMine()}`;
 }
 document.addEventListener("focusout",()=>setTimeout(()=>{if(pending)render()},300));
 
@@ -217,7 +225,7 @@ function vProjects(){
   const sub=projects.slice().sort(byOrder).filter(p=>grp(p)===pgroup);
   const rows=sub.map(p=>`<tr data-row="${p.id}">
   <td class="ord"><span class="hd" draggable="true" data-drag="${p.id}" title="Drag to reorder">\u283f</span><button class="ic" data-act="up" data-id="${p.id}" title="Move up">\u25b2</button><button class="ic" data-act="down" data-id="${p.id}" title="Move down">\u25bc</button></td>
-  <td><div class="pn">${esc(p.name)}</div>${!p.assignee&&p.devLabel?`<div class="mu">planned: ${esc(p.devLabel)}</div>`:""}</td>
+  <td><button class="pn" data-act="openproj" data-id="${p.id}">${esc(p.name)}</button>${!p.assignee&&p.devLabel?`<div class="mu">planned: ${esc(p.devLabel)}</div>`:""}</td>
   <td><select data-f="group" data-id="${p.id}">${GROUPS.map(g=>`<option ${g===grp(p)?"selected":""}>${g}</option>`).join("")}</select></td>
   <td><div>${esc(nm(p.assignee))}</div><button class="btn-sm" data-act="assign" data-id="${p.id}">${p.assignee?"Change":"Assign"}</button>
     ${assigning===p.id?`<div style="margin-top:6px">${devs().map(d=>`<div><button class="btn-sm" data-act="pick" data-id="${p.id}" data-uid="${d.id}">${esc(d.name)}</button></div>`).join("")||'<div class="mu">Add developers in the Developers tab first.</div>'}</div>`:""}</td>
@@ -230,9 +238,38 @@ function vProjects(){
   <td class="mu">${(p.dateLog||[]).length}</td>
   <td><div style="display:flex;gap:4px;flex-direction:column;"><button data-act="editproj" data-id="${p.id}" class="btn-sm">Edit</button><button data-act="delproj" data-id="${p.id}" class="btn-sm ${delId==p.id?"pri":""}">${delId==p.id?"Confirm":"Delete"}</button></div></td></tr>`).join("");
   const tabs=`<div class="tabs">${GROUPS.map(g=>`<button data-act="ptab" data-k="${g}" class="${pgroup===g?"on":""}">${g} (${projects.filter(p=>grp(p)===g).length})</button>`).join("")}</div>`;
-  return editProjPanel() + tabs + `<div class="card"><div class="row"><b>Add project</b></div><div class="row" style="margin-top:8px"><input id="np" placeholder="Project name"><label style="display:inline-flex;align-items:center;gap:6px">Committed <input id="nd" type="date"></label><button class="pri" data-act="add">Add</button></div></div>
+  return editProjPanel() + tabs + `<div class="card"><b>Add project</b><div class="grid" style="margin-top:8px">
+  <label>Project name<input id="np" placeholder="Project name"></label><label>Committed date<input id="nd" type="date"></label><label>Project URL<input id="nurl" type="url" placeholder="https://"></label>
+  </div><div class="grid" style="margin-top:8px">
+  <label>Overview / Summary<textarea id="nsummary" rows="3"></textarea></label><label>Documentation (URL or notes)<textarea id="ndocumentation" rows="3"></textarea></label><label>Credentials<textarea id="ncredentials" rows="3" autocomplete="off"></textarea></label>
+  </div><label style="margin-top:8px">Test cases (up to 10 files, 10 MB each: PDF, Word, Excel, CSV, TXT, JSON, FEATURE or ZIP)<input id="nfiles" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.json,.feature,.zip"></label>
+  <div class="row" style="margin-top:8px"><button class="pri" data-act="add">Add project</button></div></div>
   <div class="scroll"><table class="pt">${sub.length?"":'<tr><td colspan="12" class="mu">No projects in this group yet. Add one below, or change a project\'s group.</td></tr>'}<tr><th></th><th>Project</th><th>Group</th><th>Developer</th><th>Status</th><th>Baseline</th><th>Committed</th><th>Actual</th><th>Why pending</th><th>Remaining tasks</th><th>Changes</th><th>Action</th></tr>${rows}</table></div>
   <div class="mu" style="margin-top:8px">Drag \u283f or use \u25b2 \u25bc to reorder. The order also applies to the Today and Weekly tabs. Baseline never changes; every committed-date change is counted.</div>`;
+}
+function projectFileUrl(file){
+  return /^https?:\/\//i.test(file.id||"")?file.id:"/api/project-files/"+encodeURIComponent(file.id||"");
+}
+function vProjectDetail(){
+  const p=projects.find(x=>x.id===selectedProjectId);
+  if(!p)return`<div class="card"><button data-act="projectback">Back to ${isAdmin?"Projects":"My projects"}</button><p>Project not found.</p></div>`;
+  const files=Array.isArray(p.testCases)?p.testCases:[];
+  const tasksForProject=tasks.filter(t=>t.projectId===p.id).sort(tcmp);
+  const url=/^https?:\/\//i.test(p.projectUrl||"")?p.projectUrl:"";
+  return`<div class="project-page">
+  <div class="row" style="justify-content:space-between;margin-bottom:12px"><button data-act="projectback">\u2190 Back to ${isAdmin?"Projects":"My projects"}</button>${isAdmin?`<button data-act="editproj" data-id="${p.id}">Edit project</button>`:""}</div>
+  ${editProjPanel()}
+  <div class="card">
+    <div class="project-title">${esc(p.name)}</div>
+    <div class="mu" style="margin-top:4px">${esc(grp(p))} \u00b7 ${esc(stOf(p))} \u00b7 ${esc(nm(p.assignee))} \u00b7 ${tasksForProject.length} task(s)</div>
+    ${p.summary?`<h2>Overview</h2><div class="project-text">${esc(p.summary)}</div>`:""}
+    ${url?`<h2>Project URL</h2><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(url)}</a>`:""}
+    ${p.documentation?`<h2>Documentation</h2><div class="project-text">${esc(p.documentation)}</div>`:""}
+    ${p.credentials?`<h2>Credentials</h2><div class="project-text">${esc(p.credentials)}</div>`:""}
+    <h2>Test cases</h2>${files.length?`<ul class="project-files">${files.map(f=>`<li><a href="${esc(projectFileUrl(f))}" target="_blank" rel="noopener noreferrer" download="${esc(f.name||"test-case")}">${esc(f.name||"Test case file")}</a>${f.size?` <span class="mu">(${Math.ceil(f.size/1024)} KB)</span>`:""}</li>`).join("")}</ul>`:'<div class="mu">No test-case files added.</div>'}
+  </div>
+  <div class="card"><h2>Tasks</h2>${tasksForProject.length?`<div class="scroll"><table style="min-width:0"><tr><th>Task</th><th>Developer</th><th>Status</th><th>Due</th></tr>${tasksForProject.map(t=>`<tr><td>${esc(t.title)}</td><td>${esc(nm(t.assignee))}</td><td>${esc(t.status||"To Do")}</td><td>${dt(t.due)}</td></tr>`).join("")}</table></div>`:'<div class="mu">No tasks added to this project yet.</div>'}</div>
+  </div>`;
 }
 function vDevs(){
   const rows=devs().map(d=>`<tr><td><b>${esc(d.name)}</b></td><td>${esc(d.id)}${d.noLogin?' <span class="mu">(no login)</span>':""}</td><td>${projects.filter(p=>p.assignee===d.id).map(p=>esc(p.name)).join(", ")||"—"}</td>
@@ -283,6 +320,25 @@ async function upFiles(inp){
   }
   return ids;
 }
+const PROJECT_FILE_EXTS=new Set([".csv",".doc",".docx",".feature",".json",".pdf",".txt",".xls",".xlsx",".zip"]);
+function validProjectUrl(value){
+  if(!value)return true;
+  try{return["http:","https:"].includes(new URL(value).protocol)}catch(e){return false}
+}
+async function uploadProjectFiles(inp){
+  const files=[...((inp&&inp.files)||[])];
+  if(files.length>10)throw new Error("Choose no more than 10 test-case files at a time.");
+  const uploaded=[];
+  for(const file of files){
+    const ext=file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    if(!PROJECT_FILE_EXTS.has(ext))throw new Error("Unsupported test-case file: "+file.name);
+    if(file.size>10*1024*1024)throw new Error(file.name+" is larger than 10 MB.");
+    const r=await fetch("/api/project-files/upload",{method:"POST",headers:{"Content-Type":"application/octet-stream","X-File-Name":encodeURIComponent(file.name)},body:file,credentials:"same-origin"});
+    const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Test-case upload failed");
+    uploaded.push(j.file);
+  }
+  return uploaded;
+}
 const GROUPS=["SWA","Octopus","Others"];
 let pgroup="SWA";
 const allP=()=>projects,allT=()=>tasks;
@@ -293,11 +349,20 @@ const fsel=(id,lb,arr,val,dis)=>`<label>${lb}<select id="${id}" ${dis?"disabled"
 function editProjPanel(){
   const p=editProjId&&projects.find(x=>x.id===editProjId);
   if(!p)return"";
+  const files=Array.isArray(p.testCases)?p.testCases:[];
   return`<div class="card" style="border-color:var(--ac)"><b>Edit Project</b><div class="grid" style="margin-top:8px">
     <label>Project Name<input id="ep_name" value="${esc(p.name)}"></label>
     <label>Planned Developer (If unassigned)<input id="ep_dev" value="${esc(p.devLabel||"")}"></label>
     <label>Baseline Date<input id="ep_base" type="date" value="${esc(p.baseline||"")}"></label>
-  </div><div class="row" style="margin-top:10px"><button class="pri" data-act="ep_save" data-id="${p.id}">Save changes</button><button data-act="ep_cancel">Cancel</button></div></div>`;
+    <label>Project URL<input id="ep_url" type="url" value="${esc(p.projectUrl||"")}" placeholder="https://"></label>
+  </div><div class="grid" style="margin-top:8px">
+    <label>Overview / Summary<textarea id="ep_summary" rows="4">${esc(p.summary||"")}</textarea></label>
+    <label>Documentation (URL or notes)<textarea id="ep_documentation" rows="4">${esc(p.documentation||"")}</textarea></label>
+    <label>Credentials<textarea id="ep_credentials" rows="4" autocomplete="off">${esc(p.credentials||"")}</textarea></label>
+  </div>
+  <label style="margin-top:8px">Test cases (up to 10 files, 10 MB each: PDF, Word, Excel, CSV, TXT, JSON, FEATURE or ZIP)<input id="ep_files" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.json,.feature,.zip"></label>
+  ${files.length?`<div class="mu" style="margin-top:8px">Current test-case files — select any to remove on save:</div><ul class="project-files">${files.map((f,i)=>`<li><label style="display:inline"><input type="checkbox" data-remove-file="${i}"> ${esc(f.name||"Test case file")}</label></li>`).join("")}</ul>`:""}
+  <div class="row" style="margin-top:10px"><button class="pri" data-act="ep_save" data-id="${p.id}">Save changes</button><button data-act="ep_cancel">Cancel</button></div></div>`;
 }
 function editPanel(devView){
   const t=editId&&tasks.find(x=>x.id===editId);
@@ -828,7 +893,7 @@ function vMine(){
   return mine.map(p=>{
     const t=updates.find(u=>u.projectId===p.id&&u.date===today()),l=t||lastUp(p.id)||{};
     const f=(n,lb,ty="text")=>`<label>${lb}<input name="${n}" type="${ty}" value="${esc(l[n])}"></label>`;
-    return`<div class="card" data-pid="${p.id}"><div class="row" style="justify-content:space-between"><b>${esc(p.name)}</b><span>${fl(p)} ${t?'<span class="fl ok">Updated today ✓</span>':'<span class="fl warn">Update due today</span>'}</span></div>
+    return`<div class="card" data-pid="${p.id}"><div class="row" style="justify-content:space-between"><button class="project-title" style="border:0;background:transparent;padding:0" data-act="openproj" data-id="${p.id}">${esc(p.name)}</button><span>${fl(p)} ${t?'<span class="fl ok">Updated today ✓</span>':'<span class="fl warn">Update due today</span>'}</span></div>
     <div class="mu">Committed date: ${dt(p.committed)}</div><div class="grid" style="margin-top:8px">
     ${f("task","Task (what you are working on)")}
     <label>Status<select name="status">${ST.map(s=>`<option ${s===(l.status||p.status)?"selected":""}>${s}</option>`).join("")}</select></label>
@@ -851,17 +916,31 @@ app.addEventListener("drop",async e=>{
 });
 app.addEventListener("dragend",()=>{dragId=null;app.querySelectorAll("tr.over").forEach(x=>x.classList.remove("over"))});
 app.addEventListener("click",async e=>{
-  const b=e.target.closest("[data-act]");if(!b)return;const a=b.dataset.act,id=b.dataset.id;note="";
+  const b=e.target.closest("[data-act]");
+  if(!b){
+    const row=e.target.closest("tr[data-row]");
+    if(row&&!e.target.closest("button,input,select,textarea,a,[data-drag]")){selectedProjectId=row.dataset.row;editProjId=null;render()}
+    return;
+  }
+  const a=b.dataset.act,id=b.dataset.id;note="";
   try{
   if(a==="login")await doLogin();
   else if(a==="logout"){try{await api("POST","/api/logout")}catch(x){}me=null;isAdmin=false;db.reset();render()}
-  else if(a==="tab"){tab=b.dataset.k;assigning=null;render()}
+  else if(a==="tab"){tab=b.dataset.k;assigning=null;selectedProjectId=null;editProjId=null;render()}
+  else if(a==="openproj"){selectedProjectId=id;editProjId=null;render()}
+  else if(a==="projectback"){selectedProjectId=null;editProjId=null;render()}
   else if(a==="up"||a==="down"){const list=projects.slice().sort(byOrder),sub=list.filter(p=>grp(p)===pgroup),i=sub.findIndex(p=>p.id===id),j=a==="up"?i-1:i+1;if(i<0||j<0||j>=sub.length)return;const x=list.indexOf(sub[i]),y=list.indexOf(sub[j]);[list[x],list[y]]=[list[y],list[x]];await saveOrder(list)}
   else if(a==="ptab"){pgroup=b.dataset.k;assigning=null;render()}
   else if(a==="assign"){assigning=assigning===id?null:id;render()}
   else if(a==="pick"){await db.doc("projects/"+id).update({assignee:b.dataset.uid});assigning=null}
-  else if(a==="add"){const n=$("#np").value.trim(),d=$("#nd").value;if(!n)return;
-    await db.collection("projects").add({name:n,group:pgroup,order:projects.length,devLabel:"",status:"Not Started",baseline:d,committed:d,actual:"",assignee:null,dateLog:[],createdOn:today()})}
+  else if(a==="add"){
+    const n=$("#np").value.trim(),d=$("#nd").value,url=$("#nurl").value.trim();
+    if(!n){alert("Project name is required.");return}
+    if(!validProjectUrl(url)){alert("Enter a valid http or https project URL.");return}
+    if($("#nfiles").files.length>10){alert("Choose no more than 10 test-case files.");return}
+    const testCases=await uploadProjectFiles($("#nfiles"));
+    await db.collection("projects").add({name:n,group:pgroup,order:projects.length,devLabel:"",status:"Not Started",baseline:d,committed:d,actual:"",assignee:null,dateLog:[],createdOn:today(),projectUrl:url,summary:$("#nsummary").value.trim(),documentation:$("#ndocumentation").value.trim(),credentials:$("#ncredentials").value.trim(),testCases});
+  }
   else if(a==="use"){const p=projects.find(x=>x.id===id),l=lastUp(id);
     await db.doc("projects/"+id).update({committed:l.finalDate,dateLog:[...(p.dateLog||[]),{on:today(),from:p.committed||"",to:l.finalDate}]})}
   else if(a==="adminupd"){
@@ -916,7 +995,7 @@ app.addEventListener("click",async e=>{
     if(!pid||!title){alert("Choose a project and enter the task.");return}
     const images=await upFiles($("#mi"));
     await db.collection("tasks").add({projectId:pid,title,assignee:me.id,images,createdBy:me.id,createdByRole:"developer",status:st,priority:$("#mpr").value,due:$("#md").value,note:$("#mn").value.trim(),createdOn:today(),doneOn:st==="Done"?today():"",updatedTs:Date.now()});note="Task added";render()}
-  else if(a==="delproj"){if(delId!==id){delId=id;render();return}delId=null;await db.doc("projects/"+id).delete();toast("Project deleted")}
+  else if(a==="delproj"){if(delId!==id){delId=id;render();return}delId=null;selectedProjectId=null;await db.doc("projects/"+id).delete();toast("Project deleted")}
   else if(a==="addmeeting"){
     const pid=$("#m_proj").value, date=$("#m_date").value, mom=$("#m_mom").value.trim();
     if(!pid || !mom){alert("Select a project and enter MOM.");return}
@@ -930,9 +1009,16 @@ app.addEventListener("click",async e=>{
   else if(a==="editproj"){editProjId=id;render();window.scrollTo(0,0)}
   else if(a==="ep_cancel"){editProjId=null;render()}
   else if(a==="ep_save"){
-    const n=$("#ep_name").value.trim(), dl=$("#ep_dev").value.trim(), bs=$("#ep_base").value;
+    const p=projects.find(x=>x.id===id);
+    if(!p)return;
+    const n=$("#ep_name").value.trim(), dl=$("#ep_dev").value.trim(), bs=$("#ep_base").value,url=$("#ep_url").value.trim();
     if(!n){alert("Project name is required.");return;}
-    await db.doc("projects/"+id).update({name:n, devLabel:dl, baseline:bs});
+    if(!validProjectUrl(url)){alert("Enter a valid http or https project URL.");return}
+    const removed=new Set([...document.querySelectorAll("[data-remove-file]:checked")].map(x=>Number(x.dataset.removeFile)));
+    const testCases=(Array.isArray(p.testCases)?p.testCases:[]).filter((_,i)=>!removed.has(i));
+    if(testCases.length+$("#ep_files").files.length>10){alert("A project can have no more than 10 test-case files.");return}
+    testCases.push(...await uploadProjectFiles($("#ep_files")));
+    await db.doc("projects/"+id).update({name:n,devLabel:dl,baseline:bs,projectUrl:url,summary:$("#ep_summary").value.trim(),documentation:$("#ep_documentation").value.trim(),credentials:$("#ep_credentials").value.trim(),testCases});
     editProjId=null; note="Project updated"; render();
   }
   else if(a==="adddev"){
