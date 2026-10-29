@@ -107,7 +107,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const today=()=>iso(new Date());
 const ST=["Not Started","In Development","Ready for QA","QA In Progress","Bug Fixing","Blocked / On Hold","Released"];
-let db,me=null,isAdmin=false,projects=[],updates=[],users=[],tasks=[],meetings=[],tf={p:"",d:""},tsub="all",tab="",assigning=null,pending=false,loginMsg="",note="",selectedProjectId=null;
+let db,me=null,isAdmin=false,projects=[],updates=[],users=[],tasks=[],meetings=[],tf={p:"",d:""},tsub="all",tab="",assigning=null,pending=false,loginMsg="",note="",selectedProjectId=null,expandedMeetingId=null;
 const byOrder=(a,b)=>(a.order??1e9)-(b.order??1e9)||a.name.localeCompare(b.name);
 const devs=()=>users.filter(u=>u.role==="developer");
 function nm(id){if(!id)return"Not assigned";const u=users.find(x=>x.id===id);return u?u.name:"Removed user"}
@@ -542,12 +542,12 @@ function vTasks(){
 function vMeetings(){
   const po = projects.slice().sort(byOrder).map(p=>[p.id,p.name]);
   const list = meetings.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"") || (b.createdTs||0) - (a.createdTs||0));
-  const rows = list.map(m=>`<tr>
-    <td><b>${esc(pname(m.projectId))}</b></td>
+  const rows = list.map(m=>`<tr data-meeting-row="${m.id}" style="cursor:pointer">
+    <td><button data-act="meetingtoggle" data-id="${m.id}" aria-expanded="${expandedMeetingId===m.id}" style="border:0;background:transparent;padding:0;text-align:left"><span aria-hidden="true">${expandedMeetingId===m.id?"▾":"▸"}</span> <b>${esc(pname(m.projectId))}</b></button></td>
     <td style="white-space:nowrap">${dt(m.date)}</td>
-    <td style="white-space:pre-wrap">${esc(m.mom)}</td>
+    <td>${esc(String(m.mom||"").replace(/\s+/g," ").slice(0,100))}${String(m.mom||"").length>100?"…":""}</td>
     <td><button data-act="delmeeting" data-id="${m.id}" class="btn-sm ${delId===m.id?"pri":""}">${delId===m.id?"Confirm":"Delete"}</button></td>
-  </tr>`).join("");
+  </tr>${expandedMeetingId===m.id?`<tr><td colspan="4" style="white-space:pre-wrap">${esc(m.mom||"")}</td></tr>`:""}`).join("");
 
   return `<div class="card"><b>Add Meeting Details</b><div class="grid" style="margin-top:6px">
   <label>Project<select id="m_proj"><option value="">Select Project…</option>${opts(po)}</select></label>
@@ -918,6 +918,8 @@ app.addEventListener("dragend",()=>{dragId=null;app.querySelectorAll("tr.over").
 app.addEventListener("click",async e=>{
   const b=e.target.closest("[data-act]");
   if(!b){
+    const meetingRow=e.target.closest("tr[data-meeting-row]");
+    if(meetingRow){expandedMeetingId=expandedMeetingId===meetingRow.dataset.meetingRow?null:meetingRow.dataset.meetingRow;render();return}
     const row=e.target.closest("tr[data-row]");
     if(row&&!e.target.closest("button,input,select,textarea,a,[data-drag]")){selectedProjectId=row.dataset.row;editProjId=null;render()}
     return;
@@ -929,6 +931,7 @@ app.addEventListener("click",async e=>{
   else if(a==="tab"){tab=b.dataset.k;assigning=null;selectedProjectId=null;editProjId=null;render()}
   else if(a==="openproj"){selectedProjectId=id;editProjId=null;render()}
   else if(a==="projectback"){selectedProjectId=null;editProjId=null;render()}
+  else if(a==="meetingtoggle"){expandedMeetingId=expandedMeetingId===id?null:id;render()}
   else if(a==="up"||a==="down"){const list=projects.slice().sort(byOrder),sub=list.filter(p=>grp(p)===pgroup),i=sub.findIndex(p=>p.id===id),j=a==="up"?i-1:i+1;if(i<0||j<0||j>=sub.length)return;const x=list.indexOf(sub[i]),y=list.indexOf(sub[j]);[list[x],list[y]]=[list[y],list[x]];await saveOrder(list)}
   else if(a==="ptab"){pgroup=b.dataset.k;assigning=null;render()}
   else if(a==="assign"){assigning=assigning===id?null:id;render()}
