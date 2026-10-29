@@ -67,6 +67,9 @@ tr:hover td{background:color-mix(in srgb,var(--ac) 5%,transparent)}
 .create-panel .grid{grid-template-columns:1fr}
 .create-panel label{margin-top:8px}
 .list-toolbar{display:flex;justify-content:flex-end;align-items:center;margin:10px 0}
+.global-search{display:flex;gap:8px;align-items:center;margin:0 0 12px}
+.global-search input{flex:1;min-width:120px}
+.global-search-status{min-width:100px}
 .create-panel .card{padding:0;border:0;box-shadow:none;background:transparent}
 .rd-pn{position:fixed;top:0;right:0;bottom:0;width:min(860px,100%);background:var(--cd);color:var(--tx);z-index:71;display:flex;flex-direction:column;box-shadow:-8px 0 24px rgba(0,0,0,.25)}
 .rd-hd{padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
@@ -117,7 +120,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const today=()=>iso(new Date());
 const ST=["Not Started","In Development","Ready for QA","QA In Progress","Bug Fixing","Blocked / On Hold","Released"];
-let db,me=null,isAdmin=false,projects=[],updates=[],users=[],tasks=[],meetings=[],tf={p:"",d:""},tsub="all",tab="",assigning=null,pending=false,loginMsg="",note="",selectedProjectId=null,expandedMeetingId=null,createDrawerKind="",createDrawerProjectId=null;
+let db,me=null,isAdmin=false,projects=[],updates=[],users=[],tasks=[],meetings=[],tf={p:"",d:""},tsub="all",tab="",assigning=null,pending=false,loginMsg="",note="",selectedProjectId=null,expandedMeetingId=null,createDrawerKind="",createDrawerProjectId=null,globalSearch="";
 const byOrder=(a,b)=>(a.order??1e9)-(b.order??1e9)||a.name.localeCompare(b.name);
 const devs=()=>users.filter(u=>u.role==="developer");
 function nm(id){if(!id)return"Not assigned";const u=users.find(x=>x.id===id);return u?u.name:"Removed user"}
@@ -164,11 +167,49 @@ function render(){
   const tabs=isAdmin?[["today","Dashboard"],["update","Add update"],["projects","Projects"],["tasks","Tasks"],["developers","Developers"],["meetings","Meetings"],["weekly","Weekly summary"],["reports","Reports"],["account","Account"]]:[["mine","My projects"],["mytasks","My tasks"],["meetings","Meetings"],["account","Account"]];
   
   app.innerHTML=`<div class="top"><div><h1>SWA Project Manager</h1><div class="mu">${esc(me.name)} · ${isAdmin?"Admin":"Developer"} · ${today()}</div></div><div class="row"><button data-act="theme" title="Switch light / dark">${themeLabel()}</button><button data-act="logout">Sign out</button></div></div>
+  <div class="global-search"><input id="globalSearch" type="search" aria-label="Search this page" placeholder="Search this page…" value="${esc(globalSearch)}"><button type="button" data-act="searchclear" aria-label="Clear search">Clear</button><span id="globalSearchStatus" class="mu global-search-status" aria-live="polite"></span></div>
   <div class="tabs">${tabs.map(([k,l])=>`<button data-act="tab" data-k="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>
-  ${selectedProjectId?vProjectDetail():tab==="today"?vDash():tab==="projects"?vProjects():tab==="tasks"?vTasks():tab==="update"?vAdminUpdate():tab==="mytasks"?vMyTasks():tab==="developers"?vDevs():tab==="meetings"?vMeetings():tab==="weekly"?vWeekly():tab==="reports"?vReports():tab==="account"?vAccount():vMine()}
+  <div id="page-content">${selectedProjectId?vProjectDetail():tab==="today"?vDash():tab==="projects"?vProjects():tab==="tasks"?vTasks():tab==="update"?vAdminUpdate():tab==="mytasks"?vMyTasks():tab==="developers"?vDevs():tab==="meetings"?vMeetings():tab==="weekly"?vWeekly():tab==="reports"?vReports():tab==="account"?vAccount():vMine()}</div>
   ${createDrawer()}`;
+  applyPageSearch();
+}
+function applyPageSearch(){
+  const content=$("#page-content"),status=$("#globalSearchStatus"),query=globalSearch.trim().toLocaleLowerCase();
+  if(!content||!status)return;
+  const targets=Array.from(content.querySelectorAll("tr, .card, .xr, .tile, .ev, .tk, .at"));
+  if(!query){
+    targets.forEach(el=>{el.hidden=false});
+    content.hidden=false;
+    status.textContent="";
+    return;
+  }
+  let matches=0;
+  targets.forEach(el=>{
+    if(el.matches("tr")&&el.querySelector("th"))return;
+    const match=el.textContent.toLocaleLowerCase().includes(query);
+    el.hidden=!match;
+    if(match)matches++;
+  });
+  if(!targets.length){
+    const match=content.textContent.toLocaleLowerCase().includes(query);
+    content.hidden=!match;
+    matches=match?1:0;
+  }else content.hidden=false;
+  status.textContent=matches?"": "No matches on this page";
 }
 document.addEventListener("focusout",()=>setTimeout(()=>{if(pending)render()},300));
+app.addEventListener("input",e=>{
+  if(e.target.id!=="globalSearch")return;
+  globalSearch=e.target.value;
+  applyPageSearch();
+});
+app.addEventListener("keydown",e=>{
+  if(e.target.id==="globalSearch"&&e.key==="Escape"){
+    e.target.value="";
+    globalSearch="";
+    applyPageSearch();
+  }
+});
 
 function vDash(){
   const T=today(),dv=devs(),open=t=>t.status!=="Done",od=t=>open(t)&&!!t.due&&t.due<T;
@@ -338,7 +379,7 @@ async function uploadProjectFiles(inp){
     if(!PROJECT_FILE_EXTS.has(ext))throw new Error("Unsupported test-case file: "+file.name);
     if(file.size>10*1024*1024)throw new Error(file.name+" is larger than 10 MB.");
     const r=await fetch("/api/project-files/upload",{method:"POST",headers:{"Content-Type":"application/octet-stream","X-File-Name":encodeURIComponent(file.name)},body:file,credentials:"same-origin"});
-    const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Test-case upload failed");
+    const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||`Test-case upload failed (${r.status}).`);
     uploaded.push(j.file);
   }
   return uploaded;
@@ -986,7 +1027,8 @@ app.addEventListener("click",async e=>{
   const a=b.dataset.act,id=b.dataset.id;note="";
   try{
   if(a==="login")await doLogin();
-  else if(a==="logout"){try{await api("POST","/api/logout")}catch(x){}me=null;isAdmin=false;createDrawerKind="";createDrawerProjectId=null;db.reset();render()}
+  else if(a==="logout"){try{await api("POST","/api/logout")}catch(x){}me=null;isAdmin=false;globalSearch="";createDrawerKind="";createDrawerProjectId=null;db.reset();render()}
+  else if(a==="searchclear"){globalSearch="";render();$("#globalSearch").focus()}
   else if(a==="tab"){tab=b.dataset.k;assigning=null;selectedProjectId=null;editProjId=null;createDrawerKind="";createDrawerProjectId=null;render()}
   else if(a==="createopen"){createDrawerKind=b.dataset.k;createDrawerProjectId=b.dataset.id||null;render()}
   else if(a==="createclose"){createDrawerKind="";createDrawerProjectId=null;render()}
